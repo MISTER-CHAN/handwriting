@@ -39,7 +39,6 @@ import java.io.InputStream;
 public class MainActivity extends AppCompatActivity {
 
     private static final int TRANSLUCENT = Color.argb(0x7F, 0xFF, 0xFF, 0xFF);
-
     private static final Rect SQUARE_WITH_SIDE_LENGTH_192 = new Rect(0, 0, 126, 126);
 
     private Bitmap bitmap;
@@ -98,6 +97,7 @@ public class MainActivity extends AppCompatActivity {
     private Matrix matrix = new Matrix();
     private RadioButton rbLtr, rbUtd;
     private Rect rect;
+    private Rect rotatedRect;
     private SeekBar sbCharLength;
 
     private final Paint cursor = new Paint() {
@@ -456,9 +456,10 @@ public class MainActivity extends AppCompatActivity {
         width = ivCanvas.getWidth();
         height = ivCanvas.getHeight();
         rect = new Rect(0, 0, width, height);
+        rotatedRect = new Rect(0, 0, height, width);
         bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         canvas = new Canvas(bitmap);
-        matrix.setRotate(-90f, bitmap.getWidth() >> 1, bitmap.getHeight() >> 1);
+        matrix.setRotate(-90f);
         blankBitmap = Bitmap.createBitmap(bitmap);
         blankCanvas = new Canvas(blankBitmap);
         charBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
@@ -490,17 +491,17 @@ public class MainActivity extends AppCompatActivity {
         if (rbLtr.isChecked()) {
 
             if (!rotate) {
-                charLength = charWidth / width * (right - left);
+                charLength = toCharSize(right - left);
                 charCanvas.drawBitmap(bitmap,
                         rect,
-                        new RectF(0f, 0f, charWidth, charWidth / width * height),
+                        new RectF(0f, 0f, charWidth, toCharSize(height)),
                         paint);
             } else {
-                charLength = charWidth / width * (bottom - top);
+                charLength = toCharSize(bottom - top);
                 Bitmap rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, true);
                 charCanvas.drawBitmap(rotatedBitmap,
-                        rect,
-                        new RectF(0, 0, charWidth, charWidth / width * height),
+                        rotatedRect,
+                        new RectF(0f, 0f, toCharSize(height), charWidth),
                         paint);
                 rotatedBitmap.recycle();
             }
@@ -513,11 +514,14 @@ public class MainActivity extends AppCompatActivity {
 
             if (!rotate) {
                 textCanvas.drawBitmap(charBitmap,
-                        cursorX - left / width * charWidth,
-                        cursorY - charWidth / width * charTop,
+                        cursorX - toCharSize(left),
+                        cursorY - toCharSize(charTop),
                         paint);
             } else {
-                textCanvas.drawBitmap(charBitmap, cursorX - top / width * charWidth, cursorY, paint);
+                textCanvas.drawBitmap(charBitmap,
+                        cursorX - toCharSize(top),
+                        cursorY,
+                        paint);
             }
 
             cursorX += this.charLength == -1f ? charLength : this.charLength;
@@ -529,17 +533,17 @@ public class MainActivity extends AppCompatActivity {
         } else {
 
             if (!rotate) {
-                charLength = charWidth / width * (bottom - top);
+                charLength = toCharSize(bottom - top);
                 charCanvas.drawBitmap(bitmap,
                         rect,
-                        new RectF(0f, 0f, charWidth, charWidth / width * height),
+                        new RectF(0f, 0f, charWidth, toCharSize(height)),
                         paint);
             } else {
-                charLength = charWidth / width * (right - left);
+                charLength = toCharSize(right - left);
                 Bitmap rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, true);
                 charCanvas.drawBitmap(rotatedBitmap,
-                        rect,
-                        new RectF(0f, 0f, charWidth, charWidth / width * height),
+                        rotatedRect,
+                        new RectF(0f, 0f, toCharSize(height), charWidth),
                         paint);
                 rotatedBitmap.recycle();
             }
@@ -551,9 +555,9 @@ public class MainActivity extends AppCompatActivity {
             }
 
             if (!rotate) {
-                textCanvas.drawBitmap(charBitmap, cursorX, cursorY - top / width * charWidth, paint);
+                textCanvas.drawBitmap(charBitmap, cursorX, cursorY - toCharSize(top), paint);
             } else {
-                textCanvas.drawBitmap(charBitmap, cursorX - top / width * charWidth, cursorY, paint);
+                textCanvas.drawBitmap(charBitmap, cursorX - toCharSize(top), cursorY, paint);
             }
 
             cursorY += this.charLength == -1f ? charLength : this.charLength;
@@ -723,5 +727,9 @@ public class MainActivity extends AppCompatActivity {
                 cursorY + charWidth,
                 cursor);
         ivCanvas.setImageBitmap(displayBitmap);
+    }
+
+    private float toCharSize(float size) {
+        return charWidth / width * size;
     }
 }

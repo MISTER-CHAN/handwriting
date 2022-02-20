@@ -187,7 +187,7 @@
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:text="左右間距" />
+                android:text="列間距" />
 
             <SeekBar
                 android:id="@+id/sb_column_spacing"
@@ -209,7 +209,7 @@
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:text="上下間距" />
+                android:text="行間距" />
 
             <SeekBar
                 android:id="@+id/sb_line_spacing"
