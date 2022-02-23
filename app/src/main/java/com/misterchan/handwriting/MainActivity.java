@@ -308,20 +308,23 @@ public class MainActivity extends AppCompatActivity {
                         a = d / (float) Math.pow(d, ratio),
                         w = 0f,
                         width = (float) Math.pow(1 - d / size, handwriting) * strokeWidth,
-                        xpd = (x - prevX) / d, ypd = (y - prevY) / d;
+                        dBwPD = (width - brushWidth) / d, // Delta brushWidth per d
+                        dxPD = (x - prevX) / d, dyPD = (y - prevY) / d; // Delta x per d and delta y per d
                 if (width >= brushWidth) {
                     for (float f = 0; f < d; f += alias) {
-                        w = a * (float) Math.pow(f, ratio) / d * (width - brushWidth) + brushWidth;
-                        RectF r = new RectF(xpd * f + prevX - w, ypd * f + prevY - w, xpd * f + prevX + w, ypd * f + prevY + w);
-                        blankCanvas.drawBitmap(brush, SQUARE_WITH_SIDE_LENGTH_192, r, paint);
-                        canvas.drawBitmap(brush, SQUARE_WITH_SIDE_LENGTH_192, r, paint);
+                        w = a * (float) Math.pow(f, ratio) * dBwPD + brushWidth;
+                        RectF dst = new RectF(dxPD * f + prevX - w, dyPD * f + prevY - w,
+                                dxPD * f + prevX + w, dyPD * f + prevY + w);
+                        blankCanvas.drawBitmap(brush, SQUARE_WITH_SIDE_LENGTH_192, dst, paint);
+                        canvas.drawBitmap(brush, SQUARE_WITH_SIDE_LENGTH_192, dst, paint);
                     }
                 } else {
                     for (float f = 0; f < d; f += alias) {
-                        w = (float) Math.pow(f / a, 1 / ratio) / d * (width - brushWidth) + brushWidth;
-                        RectF r = new RectF(xpd * f + prevX - w, ypd * f + prevY - w, xpd * f + prevX + w, ypd * f + prevY + w);
-                        blankCanvas.drawBitmap(brush, SQUARE_WITH_SIDE_LENGTH_192, r, paint);
-                        canvas.drawBitmap(brush, SQUARE_WITH_SIDE_LENGTH_192, r, paint);
+                        w = (float) Math.pow(f / a, 1 / ratio) * dBwPD + brushWidth;
+                        RectF dst = new RectF(dxPD * f + prevX - w, dyPD * f + prevY - w,
+                                dxPD * f + prevX + w, dyPD * f + prevY + w);
+                        blankCanvas.drawBitmap(brush, SQUARE_WITH_SIDE_LENGTH_192, dst, paint);
+                        canvas.drawBitmap(brush, SQUARE_WITH_SIDE_LENGTH_192, dst, paint);
                     }
                 }
                 brushWidth = w;
@@ -719,11 +722,8 @@ public class MainActivity extends AppCompatActivity {
     private void setCursor(boolean style) {
         clearCanvas(displayCanvas);
         displayCanvas.drawBitmap(textBitmap, 0f, 0f, paint);
-        displayCanvas.drawRect(
-                cursorX,
-                style ? cursorY : cursorY + charWidth,
-                cursorX + charWidth,
-                cursorY + charWidth,
+        displayCanvas.drawRect(cursorX, style ? cursorY : cursorY + charWidth,
+                cursorX + charWidth, cursorY + charWidth,
                 cursor);
         ivCanvas.setImageBitmap(displayBitmap);
     }
