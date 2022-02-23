@@ -719,7 +719,8 @@ public class MainActivity extends AppCompatActivity {
     private void setCursor(boolean style) {
         clearCanvas(displayCanvas);
         displayCanvas.drawBitmap(textBitmap, 0f, 0f, paint);
-        displayCanvas.drawRect(cursorX,
+        displayCanvas.drawRect(
+                cursorX,
                 style ? cursorY : cursorY + charWidth,
                 cursorX + charWidth,
                 cursorY + charWidth,
