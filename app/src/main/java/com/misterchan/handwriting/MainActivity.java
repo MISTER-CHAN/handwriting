@@ -123,9 +123,11 @@ public class MainActivity extends AppCompatActivity {
     };
 
     ActivityResultCallback<Uri> imageActivityResultCallback = result -> {
+        if (result == null) {
+            return;
+        }
         try (InputStream inputStream = getContentResolver().openInputStream(result)) {
-            paper = BitmapFactory.decodeStream(inputStream);
-            paper = Bitmap.createScaledBitmap(paper, width, height, true);
+            paper = Bitmap.createScaledBitmap(BitmapFactory.decodeStream(inputStream), width, height, true);
             textCanvas.drawBitmap(paper, 0f, 0f, paint);
             ivCanvas.setImageBitmap(textBitmap);
             previewPaperCanvas.drawBitmap(paper, 0f, 0f, paint);
@@ -310,14 +312,14 @@ public class MainActivity extends AppCompatActivity {
                 if (width >= brushWidth) {
                     for (float f = 0; f < d; f += alias) {
                         w = a * (float) Math.pow(f, ratio) / d * (width - brushWidth) + brushWidth;
-                        Rect r = new Rect((int) (xpd * f + prevX - w), (int) (ypd * f + prevY - w), (int) (xpd * f + prevX + w), (int) (ypd * f + prevY + w));
+                        RectF r = new RectF(xpd * f + prevX - w, ypd * f + prevY - w, xpd * f + prevX + w, ypd * f + prevY + w);
                         blankCanvas.drawBitmap(brush, SQUARE_WITH_SIDE_LENGTH_192, r, paint);
                         canvas.drawBitmap(brush, SQUARE_WITH_SIDE_LENGTH_192, r, paint);
                     }
                 } else {
                     for (float f = 0; f < d; f += alias) {
                         w = (float) Math.pow(f / a, 1 / ratio) / d * (width - brushWidth) + brushWidth;
-                        Rect r = new Rect((int) (xpd * f + prevX - w), (int) (ypd * f + prevY - w), (int) (xpd * f + prevX + w), (int) (ypd * f + prevY + w));
+                        RectF r = new RectF(xpd * f + prevX - w, ypd * f + prevY - w, xpd * f + prevX + w, ypd * f + prevY + w);
                         blankCanvas.drawBitmap(brush, SQUARE_WITH_SIDE_LENGTH_192, r, paint);
                         canvas.drawBitmap(brush, SQUARE_WITH_SIDE_LENGTH_192, r, paint);
                     }
