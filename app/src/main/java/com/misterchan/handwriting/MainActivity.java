@@ -72,12 +72,12 @@ public class MainActivity extends AppCompatActivity {
     private float charWidth = 64f;
     private float columnSpacing = 4f;
     private float cursorX = 0f;
+    private float curvature = 2f;
     private float left;
     private float lineSpacing = 0f;
     private float cursorY = 0f;
     private float prevX = 0f, prevY = 0f;
     private float previewX = 0f, previewY = 0f;
-    private float ratio = 2f;
     private float right;
     private float spaceX = 0f, spaceY = 0f;
     private float size;
@@ -305,14 +305,14 @@ public class MainActivity extends AppCompatActivity {
                 if (y > bottom) bottom = y;
 
                 float d = (float) Math.sqrt(Math.pow(x - prevX, 2) + Math.pow(y - prevY, 2)),
-                        a = d / (float) Math.pow(d, ratio),
+                        a = d / (float) Math.pow(d, curvature),
                         w = 0f,
                         width = (float) Math.pow(1 - d / size, handwriting) * strokeWidth,
                         dBwPD = (width - brushWidth) / d, // Delta brushWidth per d
                         dxPD = (x - prevX) / d, dyPD = (y - prevY) / d; // Delta x per d and delta y per d
                 if (width >= brushWidth) {
                     for (float f = 0; f < d; f += alias) {
-                        w = a * (float) Math.pow(f, ratio) * dBwPD + brushWidth;
+                        w = a * (float) Math.pow(f, curvature) * dBwPD + brushWidth;
                         RectF dst = new RectF(dxPD * f + prevX - w, dyPD * f + prevY - w,
                                 dxPD * f + prevX + w, dyPD * f + prevY + w);
                         blankCanvas.drawBitmap(brush, SQUARE_WITH_SIDE_LENGTH_192, dst, paint);
@@ -320,7 +320,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 } else {
                     for (float f = 0; f < d; f += alias) {
-                        w = (float) Math.pow(f / a, 1 / ratio) * dBwPD + brushWidth;
+                        w = (float) Math.pow(f / a, 1 / curvature) * dBwPD + brushWidth;
                         RectF dst = new RectF(dxPD * f + prevX - w, dyPD * f + prevY - w,
                                 dxPD * f + prevX + w, dyPD * f + prevY + w);
                         blankCanvas.drawBitmap(brush, SQUARE_WITH_SIDE_LENGTH_192, dst, paint);
@@ -615,9 +615,9 @@ public class MainActivity extends AppCompatActivity {
         sbCharLength.setOnSeekBarChangeListener(onCharLengthSeekBarProgressChangeListener);
         ((SeekBar) findViewById(R.id.sb_char_width)).setOnSeekBarChangeListener(onCharWidthSeekBarProgressChangeListener);
         ((SeekBar) findViewById(R.id.sb_column_spacing)).setOnSeekBarChangeListener(onColSpacingSeekBarProgressChangeListener);
+        ((SeekBar) findViewById(R.id.sb_curvature)).setOnSeekBarChangeListener((OnProgressChangeListener) progress -> curvature = progress / 10f);
         ((SeekBar) findViewById(R.id.sb_handwriting)).setOnSeekBarChangeListener((OnProgressChangeListener) progress -> handwriting = progress);
         ((SeekBar) findViewById(R.id.sb_line_spacing)).setOnSeekBarChangeListener(onLineSpacingSeekBarProgressChangeListener);
-        ((SeekBar) findViewById(R.id.sb_ratio)).setOnSeekBarChangeListener((OnProgressChangeListener) progress -> ratio = progress / 10f);
         ((SeekBar) findViewById(R.id.sb_stroke_width)).setOnSeekBarChangeListener((OnProgressChangeListener) progress -> strokeWidth = progress);
         ((SwitchCompat) findViewById(R.id.s_newline)).setOnCheckedChangeListener((compoundButton, b) -> autoNewline = b);
 

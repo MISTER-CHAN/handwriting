@@ -168,7 +168,7 @@
                 android:text="過渡性" />
 
             <SeekBar
-                android:id="@+id/sb_ratio"
+                android:id="@+id/sb_curvature"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="5"
