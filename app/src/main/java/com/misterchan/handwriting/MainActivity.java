@@ -245,6 +245,19 @@ public class MainActivity extends AppCompatActivity {
         preview();
     };
 
+    private final SeekBar.OnSeekBarChangeListener onConcentrationSeekBarChangeListener = new SeekBar.OnSeekBarChangeListener() {
+        @Override
+        public void onProgressChanged(SeekBar seekBar, int i, boolean b) {}
+
+        @Override
+        public void onStartTrackingTouch(SeekBar seekBar) {}
+
+        @Override
+        public void onStopTrackingTouch(SeekBar seekBar) {
+            setBrushConcentration((double) seekBar.getProgress() / 10.0);
+        }
+    };
+
     @SuppressLint("ClickableViewAccessibility")
     private final View.OnTouchListener onBackspaceButtonTouchListener = (view, motionEvent) -> {
         switch (motionEvent.getAction()) {
@@ -615,6 +628,7 @@ public class MainActivity extends AppCompatActivity {
         sbCharLength.setOnSeekBarChangeListener(onCharLengthSeekBarProgressChangeListener);
         ((SeekBar) findViewById(R.id.sb_char_width)).setOnSeekBarChangeListener(onCharWidthSeekBarProgressChangeListener);
         ((SeekBar) findViewById(R.id.sb_column_spacing)).setOnSeekBarChangeListener(onColSpacingSeekBarProgressChangeListener);
+        ((SeekBar) findViewById(R.id.sb_concentration)).setOnSeekBarChangeListener(onConcentrationSeekBarChangeListener);
         ((SeekBar) findViewById(R.id.sb_curvature)).setOnSeekBarChangeListener((OnProgressChangeListener) progress -> curvature = progress / 10f);
         ((SeekBar) findViewById(R.id.sb_handwriting)).setOnSeekBarChangeListener((OnProgressChangeListener) progress -> handwriting = progress);
         ((SeekBar) findViewById(R.id.sb_line_spacing)).setOnSeekBarChangeListener(onLineSpacingSeekBarProgressChangeListener);
@@ -697,6 +711,17 @@ public class MainActivity extends AppCompatActivity {
                     previewer);
         }
         ivPreview.setImageBitmap(previewBitmap);
+    }
+
+    private void setBrushConcentration(double concentration) {
+        int brushWidth = blackBrush.getWidth(), brushHeight = blackBrush.getHeight();
+        for (int y = 0; y < brushHeight; ++y) {
+            for (int x = 0; x < brushWidth; ++x) {
+                if (blackBrush.getPixel(x, y) != Color.TRANSPARENT) {
+                    brush.setPixel(x, y, Math.random() >= concentration ? brushColor : Color.TRANSPARENT);
+                }
+            }
+        }
     }
 
     private void setBrushColor(int color) {
