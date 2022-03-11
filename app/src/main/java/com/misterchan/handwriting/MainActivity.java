@@ -62,26 +62,26 @@ public class MainActivity extends AppCompatActivity {
     private Canvas previewCanvas;
     private Canvas previewPaperCanvas;
     private Canvas textCanvas;
-    private float alias = 8f;
-    private float backspaceX = 0f, backspaceY = 0f;
+    private float alias = 8.0f;
+    private float backspaceX = 0.0f, backspaceY = 0.0f;
     private float bottom;
     private float brushWidth;
     private float charBottom;
-    private float charLength = -1f;
+    private float charLength = -1.0f;
     private float charTop;
-    private float charWidth = 64f;
-    private float columnSpacing = 4f;
-    private float cursorX = 0f;
-    private float curvature = 2f;
+    private float charWidth = 64.0f;
+    private float columnSpacing = 4.0f;
+    private float cursorX = 0.0f;
+    private float curvature = 2.0f;
     private float left;
-    private float lineSpacing = 0f;
-    private float cursorY = 0f;
-    private float prevX = 0f, prevY = 0f;
-    private float previewX = 0f, previewY = 0f;
+    private float lineSpacing = 0.0f;
+    private float cursorY = 0.0f;
+    private float prevX = 0.0f, prevY = 0.0f;
+    private float previewX = 0f, previewY = 0.0f;
     private float right;
-    private float spaceX = 0f, spaceY = 0f;
+    private float spaceX = 0.0f, spaceY = 0.0f;
     private float size;
-    private float strokeWidth = 96f;
+    private float strokeWidth = 96.0f;
     private float top;
     private ImageView ivCanvas;
     private ImageView ivPreview;
@@ -98,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
 
     private final Paint cursor = new Paint() {
         {
-            setStrokeWidth(8f);
+            setStrokeWidth(8.0f);
             setStyle(Style.STROKE);
         }
     };
@@ -111,13 +111,13 @@ public class MainActivity extends AppCompatActivity {
 
     private final Paint paint = new Paint() {
         {
-            setStrokeWidth(2f);
+            setStrokeWidth(2.0f);
         }
     };
 
     private final Paint previewer = new Paint() {
         {
-            setStrokeWidth(2f);
+            setStrokeWidth(2.0f);
             setStyle(Style.STROKE);
         }
     };
@@ -128,9 +128,9 @@ public class MainActivity extends AppCompatActivity {
         }
         try (InputStream inputStream = getContentResolver().openInputStream(result)) {
             paper = Bitmap.createScaledBitmap(BitmapFactory.decodeStream(inputStream), width, height, true);
-            textCanvas.drawBitmap(paper, 0f, 0f, paint);
+            textCanvas.drawBitmap(paper, 0.0f, 0.0f, paint);
             ivCanvas.setImageBitmap(textBitmap);
-            previewPaperCanvas.drawBitmap(paper, 0f, 0f, paint);
+            previewPaperCanvas.drawBitmap(paper, 0.0f, 0.0f, paint);
             preview();
             setCursor();
         } catch (IOException e) {
@@ -144,7 +144,7 @@ public class MainActivity extends AppCompatActivity {
     private final CompoundButton.OnCheckedChangeListener onCharLengthAutoCompButtCheckedChangeListener = (compoundButton, isChecked) -> {
         if (isChecked) {
             sbCharLength.setVisibility(View.GONE);
-            charLength = -1f;
+            charLength = -1.0f;
             preview();
         }
     };
@@ -203,7 +203,7 @@ public class MainActivity extends AppCompatActivity {
         if (paper == null) {
             clearCanvas(textCanvas);
         } else {
-            textCanvas.drawBitmap(paper, 0f, 0f, paint);
+            textCanvas.drawBitmap(paper, 0.0f, 0.0f, paint);
         }
         ivCanvas.setImageBitmap(textBitmap);
         setCursor();
@@ -215,10 +215,10 @@ public class MainActivity extends AppCompatActivity {
             next(true);
         } else {
             if (rbLtr.isChecked()) {
-                cursorX = 0f;
+                cursorX = 0.0f;
                 cursorY += charWidth + lineSpacing;
             } else {
-                cursorY = 0f;
+                cursorY = 0.0f;
                 cursorX -= charWidth + lineSpacing;
             }
             setCursor();
@@ -287,7 +287,7 @@ public class MainActivity extends AppCompatActivity {
                 if (backspace) {
                     backspace = false;
                 } else {
-                    backspace((int) (charWidth / 4f));
+                    backspace((int) (charWidth / 4.0f));
                 }
                 break;
         }
@@ -301,14 +301,15 @@ public class MainActivity extends AppCompatActivity {
             case MotionEvent.ACTION_DOWN:
                 prevX = x;
                 prevY = y;
-                brushWidth = 0f;
+                brushWidth = 0.0f;
                 if (!isWriting) {
                     isWriting = true;
                     clearCanvas(blankCanvas);
-                    blankCanvas.drawBitmap(displayBitmap, 0f, 0f, paint);
+                    blankCanvas.drawBitmap(displayBitmap, 0.0f, 0.0f, paint);
                     blankCanvas.drawColor(TRANSLUCENT);
-                    blankCanvas.drawLine(0f, charTop, width, charTop, paint);
-                    blankCanvas.drawLine(0f, charBottom, width, charBottom, paint);
+                    blankCanvas.drawLine(0.0f, charTop, width, charTop, paint);
+                    blankCanvas.drawLine(0.0f, charBottom, width, charBottom, paint);
+                    blankCanvas.drawLine(width / 2.0f, 0.0f, width / 2.0f, height, paint);
                 }
                 break;
             case MotionEvent.ACTION_MOVE:
@@ -319,7 +320,7 @@ public class MainActivity extends AppCompatActivity {
 
                 float d = (float) Math.sqrt(Math.pow(x - prevX, 2) + Math.pow(y - prevY, 2)),
                         a = d / (float) Math.pow(d, curvature),
-                        w = 0f,
+                        w = 0.0f,
                         width = (float) Math.pow(1 - d / size, handwriting) * strokeWidth,
                         dBwPD = (width - brushWidth) / d, // Delta brushWidth per d
                         dxPD = (x - prevX) / d, dyPD = (y - prevY) / d; // Delta x per d and delta y per d
@@ -363,8 +364,8 @@ public class MainActivity extends AppCompatActivity {
                 }
                 int[] buttonLocation = new int[2];
                 view.getLocationOnScreen(buttonLocation);
-                cursorX = (buttonLocation[0] + motionEvent.getX() - canvasLocation[0]) - charWidth / 8f;
-                cursorY = (buttonLocation[1] + motionEvent.getY() - canvasLocation[1]) - charWidth / 2f;
+                cursorX = (buttonLocation[0] + motionEvent.getX() - canvasLocation[0]) - charWidth / 8.0f;
+                cursorY = (buttonLocation[1] + motionEvent.getY() - canvasLocation[1]) - charWidth / 2.0f;
                 setCursor(true);
             }
         }
@@ -404,9 +405,9 @@ public class MainActivity extends AppCompatActivity {
                     space = false;
                 } else {
                     if (rbLtr.isChecked()) {
-                        cursorX += charWidth / 4f;
+                        cursorX += charWidth / 4.0f;
                     } else {
-                        cursorY += charWidth / 4f;
+                        cursorY += charWidth / 4.0f;
                     }
                     setCursor();
                 }
@@ -473,7 +474,7 @@ public class MainActivity extends AppCompatActivity {
         rotatedRect = new Rect(0, 0, height, width);
         bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         canvas = new Canvas(bitmap);
-        matrix.setRotate(-90f);
+        matrix.setRotate(-90.0f);
         blankBitmap = Bitmap.createBitmap(bitmap);
         blankCanvas = new Canvas(blankBitmap);
         charBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
@@ -484,10 +485,10 @@ public class MainActivity extends AppCompatActivity {
         displayCanvas = new Canvas(displayBitmap);
         size = (float) Math.sqrt(Math.pow(width, 2) + Math.pow(height, 2));
         left = width;
-        right = 0f;
+        right = 0.0f;
         top = height;
-        bottom = 0f;
-        charTop = (height - width) / 2f;
+        bottom = 0.0f;
+        charTop = (height - width) / 2.0f;
         charBottom = charTop + width;
         setCursor();
     }
@@ -508,14 +509,14 @@ public class MainActivity extends AppCompatActivity {
                 charLength = toCharSize(right - left);
                 charCanvas.drawBitmap(bitmap,
                         rect,
-                        new RectF(0f, 0f, charWidth, toCharSize(height)),
+                        new RectF(0.0f, 0.0f, charWidth, toCharSize(height)),
                         paint);
             } else {
                 charLength = toCharSize(bottom - top);
                 Bitmap rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, true);
                 charCanvas.drawBitmap(rotatedBitmap,
                         rotatedRect,
-                        new RectF(0f, 0f, toCharSize(height), charWidth),
+                        new RectF(0.0f, 0.0f, toCharSize(height), charWidth),
                         paint);
                 rotatedBitmap.recycle();
             }
@@ -523,7 +524,7 @@ public class MainActivity extends AppCompatActivity {
             cursorX += columnSpacing;
             if (autoNewline && cursorX + charLength > width) {
                 cursorY += charWidth + lineSpacing;
-                cursorX = 0f;
+                cursorX = 0.0f;
             }
 
             if (!rotate) {
@@ -538,10 +539,10 @@ public class MainActivity extends AppCompatActivity {
                         paint);
             }
 
-            cursorX += this.charLength == -1f ? charLength : this.charLength;
+            cursorX += this.charLength == -1.0f ? charLength : this.charLength;
             if (!autoNewline && cursorX > width) {
                 cursorY += charWidth + lineSpacing;
-                cursorX = 0f;
+                cursorX = 0.0f;
             }
 
         } else {
@@ -550,14 +551,14 @@ public class MainActivity extends AppCompatActivity {
                 charLength = toCharSize(bottom - top);
                 charCanvas.drawBitmap(bitmap,
                         rect,
-                        new RectF(0f, 0f, charWidth, toCharSize(height)),
+                        new RectF(0.0f, 0.0f, charWidth, toCharSize(height)),
                         paint);
             } else {
                 charLength = toCharSize(right - left);
                 Bitmap rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, true);
                 charCanvas.drawBitmap(rotatedBitmap,
                         rotatedRect,
-                        new RectF(0f, 0f, toCharSize(height), charWidth),
+                        new RectF(0.0f, 0.0f, toCharSize(height), charWidth),
                         paint);
                 rotatedBitmap.recycle();
             }
@@ -574,7 +575,7 @@ public class MainActivity extends AppCompatActivity {
                 textCanvas.drawBitmap(charBitmap, cursorX - toCharSize(top), cursorY, paint);
             }
 
-            cursorY += this.charLength == -1f ? charLength : this.charLength;
+            cursorY += this.charLength == -1.0f ? charLength : this.charLength;
             if (!autoNewline && cursorY > height) {
                 cursorX -= charWidth + lineSpacing;
                 cursorY = 0;
@@ -584,9 +585,9 @@ public class MainActivity extends AppCompatActivity {
         clearCanvas(canvas);
         setCursor();
         left = ivCanvas.getWidth();
-        right = 0f;
+        right = 0.0f;
         top = ivCanvas.getHeight();
-        bottom = 0f;
+        bottom = 0.0f;
     }
 
     @Override
@@ -629,7 +630,7 @@ public class MainActivity extends AppCompatActivity {
         ((SeekBar) findViewById(R.id.sb_char_width)).setOnSeekBarChangeListener(onCharWidthSeekBarProgressChangeListener);
         ((SeekBar) findViewById(R.id.sb_column_spacing)).setOnSeekBarChangeListener(onColSpacingSeekBarProgressChangeListener);
         ((SeekBar) findViewById(R.id.sb_concentration)).setOnSeekBarChangeListener(onConcentrationSeekBarChangeListener);
-        ((SeekBar) findViewById(R.id.sb_curvature)).setOnSeekBarChangeListener((OnProgressChangeListener) progress -> curvature = progress / 10f);
+        ((SeekBar) findViewById(R.id.sb_curvature)).setOnSeekBarChangeListener((OnProgressChangeListener) progress -> curvature = progress / 10.0f);
         ((SeekBar) findViewById(R.id.sb_handwriting)).setOnSeekBarChangeListener((OnProgressChangeListener) progress -> handwriting = progress);
         ((SeekBar) findViewById(R.id.sb_line_spacing)).setOnSeekBarChangeListener(onLineSpacingSeekBarProgressChangeListener);
         ((SeekBar) findViewById(R.id.sb_stroke_width)).setOnSeekBarChangeListener((OnProgressChangeListener) progress -> strokeWidth = progress);
@@ -693,8 +694,8 @@ public class MainActivity extends AppCompatActivity {
             previewY = previewHeight >> 1;
         }
         clearCanvas(previewCanvas);
-        previewCanvas.drawBitmap(previewPaperBitmap, 0f, 0f, previewer);
-        float charLength = (this.charLength == -1f ? charWidth : this.charLength);
+        previewCanvas.drawBitmap(previewPaperBitmap, 0.0f, 0.0f, previewer);
+        float charLength = (this.charLength == -1.0f ? charWidth : this.charLength);
         if (rbLtr.isChecked()) {
             previewCanvas.drawRect(previewX, previewY,
                     previewX + charLength, previewY + charWidth,
@@ -718,7 +719,7 @@ public class MainActivity extends AppCompatActivity {
         for (int y = 0; y < brushHeight; ++y) {
             for (int x = 0; x < brushWidth; ++x) {
                 if (blackBrush.getPixel(x, y) != Color.TRANSPARENT) {
-                    brush.setPixel(x, y, Math.random() >= concentration ? brushColor : Color.TRANSPARENT);
+                    brush.setPixel(x, y, Math.random() < concentration ? brushColor : Color.TRANSPARENT);
                 }
             }
         }
@@ -746,7 +747,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void setCursor(boolean style) {
         clearCanvas(displayCanvas);
-        displayCanvas.drawBitmap(textBitmap, 0f, 0f, paint);
+        displayCanvas.drawBitmap(textBitmap, 0.0f, 0.0f, paint);
         displayCanvas.drawRect(cursorX, style ? cursorY : cursorY + charWidth,
                 cursorX + charWidth, cursorY + charWidth,
                 cursor);
