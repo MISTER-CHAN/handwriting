@@ -334,7 +334,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="5"
             android:max="192"
-            android:progress="24" />
+            android:progress="64" />
     </LinearLayout>
 
     <LinearLayout

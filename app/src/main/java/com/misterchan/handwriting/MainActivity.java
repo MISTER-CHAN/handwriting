@@ -81,7 +81,7 @@ public class MainActivity extends AppCompatActivity {
     private float right;
     private float spaceX = 0.0f, spaceY = 0.0f;
     private float size;
-    private float strokeWidth = 96.0f;
+    private float strokeWidth = 64.0f;
     private float top;
     private ImageView ivCanvas;
     private ImageView ivPreview;
