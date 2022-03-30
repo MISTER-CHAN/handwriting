@@ -38,15 +38,17 @@ public class MainActivity extends AppCompatActivity {
     private static final Rect SQUARE_WITH_SIDE_LENGTH_192 = new Rect(0, 0, 126, 126);
 
     private Bitmap bitmap;
-    private Bitmap blackBrush;
     private Bitmap blankBitmap;
     private Bitmap brush;
+    private Bitmap brushBlack;
+    private Bitmap brushBlackRotated;
+    private Bitmap brushRed;
+    private Bitmap brushRedRotated;
     private Bitmap charBitmap;
     private Bitmap displayBitmap;
     private Bitmap paper;
     private Bitmap previewBitmap;
     private Bitmap previewPaperBitmap;
-    private Bitmap redBrush;
     private Bitmap textBitmap;
     private boolean autoNewline = false;
     private boolean backspace = false;
@@ -73,14 +75,15 @@ public class MainActivity extends AppCompatActivity {
     private float columnSpacing = 4.0f;
     private float cursorX = 0.0f;
     private float curvature = 2.0f;
+    private float end = 0.0f;
     private float left;
     private float lineSpacing = 0.0f;
     private float cursorY = 0.0f;
     private float prevX = 0.0f, prevY = 0.0f;
     private float previewX = 0f, previewY = 0.0f;
     private float right;
-    private float spaceX = 0.0f, spaceY = 0.0f;
     private float size;
+    private float spacing = 0.0f;
     private float strokeWidth = 64.0f;
     private float top;
     private ImageView ivCanvas;
@@ -95,6 +98,7 @@ public class MainActivity extends AppCompatActivity {
     private Rect rect;
     private Rect rotatedRect;
     private SeekBar sbCharLength;
+    private SwitchCompat sRotate;
 
     private final Paint cursor = new Paint() {
         {
@@ -141,7 +145,7 @@ public class MainActivity extends AppCompatActivity {
     private final ActivityResultLauncher<String> imageActivityResultLauncher =
             registerForActivityResult(new ActivityResultContracts.GetContent(), imageActivityResultCallback);
 
-    private final CompoundButton.OnCheckedChangeListener onCharLengthAutoCompButtCheckedChangeListener = (compoundButton, isChecked) -> {
+    private final CompoundButton.OnCheckedChangeListener onCharLengthAutoRadButtCheckedChangeListener = (compoundButton, isChecked) -> {
         if (isChecked) {
             sbCharLength.setVisibility(View.GONE);
             charLength = -1.0f;
@@ -149,7 +153,7 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private final CompoundButton.OnCheckedChangeListener onCharLengthCustomCompButtCheckedChangeListener = (compoundButton, isChecked) -> {
+    private final CompoundButton.OnCheckedChangeListener onCharLengthCustomRadButtCheckedChangeListener = (compoundButton, isChecked) -> {
         if (isChecked) {
             charLength = sbCharLength.getProgress();
             sbCharLength.setVisibility(View.VISIBLE);
@@ -157,13 +161,24 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    private final CompoundButton.OnCheckedChangeListener onRotateSwitchCheckedChangeListener = (buttonView, isChecked) -> {
+        Bitmap newBrush = brushColor == Color.BLACK
+                ? isChecked ? brushBlackRotated : brushBlack
+                : isChecked ? brushRedRotated : brushRed;
+        brush = newBrush.copy(Bitmap.Config.ARGB_8888, true);
+    };
+
     private final View.OnClickListener onColorButtonClickListener = view -> {
         if (brushColor == Color.BLACK) {
-            brush = redBrush.copy(Bitmap.Config.ARGB_8888, true);
+            brush = sRotate.isChecked()
+                    ? brushRedRotated.copy(Bitmap.Config.ARGB_8888, true)
+                    : brushRed.copy(Bitmap.Config.ARGB_8888, true);
             brushColor = Color.RED;
             bColor.setTextColor(Color.RED);
         } else {
-            brush = blackBrush.copy(Bitmap.Config.ARGB_8888, true);
+            brush = sRotate.isChecked()
+                    ? brushBlackRotated.copy(Bitmap.Config.ARGB_8888, true)
+                    : brushBlack.copy(Bitmap.Config.ARGB_8888, true);
             brushColor = Color.BLACK;
             bColor.setTextColor(Color.BLACK);
         }
@@ -212,7 +227,7 @@ public class MainActivity extends AppCompatActivity {
 
     private final View.OnClickListener onReturnButtonClickListener = view -> {
         if (isWriting) {
-            next(true);
+            next();
         } else {
             if (rbLtr.isChecked()) {
                 cursorX = 0.0f;
@@ -247,10 +262,12 @@ public class MainActivity extends AppCompatActivity {
 
     private final SeekBar.OnSeekBarChangeListener onConcentrationSeekBarChangeListener = new SeekBar.OnSeekBarChangeListener() {
         @Override
-        public void onProgressChanged(SeekBar seekBar, int i, boolean b) {}
+        public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+        }
 
         @Override
-        public void onStartTrackingTouch(SeekBar seekBar) {}
+        public void onStartTrackingTouch(SeekBar seekBar) {
+        }
 
         @Override
         public void onStopTrackingTouch(SeekBar seekBar) {
@@ -310,6 +327,7 @@ public class MainActivity extends AppCompatActivity {
                     blankCanvas.drawLine(0.0f, charTop, width, charTop, paint);
                     blankCanvas.drawLine(0.0f, charBottom, width, charBottom, paint);
                     blankCanvas.drawLine(width / 2.0f, 0.0f, width / 2.0f, height, paint);
+                    blankCanvas.drawBitmap(bitmap, 0.0f, 0.0f, paint);
                 }
                 break;
             case MotionEvent.ACTION_MOVE:
@@ -384,30 +402,59 @@ public class MainActivity extends AppCompatActivity {
     private final View.OnTouchListener onSpaceButtonTouchListener = (view, motionEvent) -> {
         switch (motionEvent.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                spaceX = motionEvent.getX();
-                spaceY = motionEvent.getY();
+                if (isWriting) {
+                    spacing = rbLtr.isChecked() ^ sRotate.isChecked() ? motionEvent.getX() : motionEvent.getY();
+                    end = rbLtr.isChecked() ^ sRotate.isChecked() ? width : height;
+                } else {
+                    spacing = rbLtr.isChecked() ? motionEvent.getX() : motionEvent.getY();
+                }
                 break;
             case MotionEvent.ACTION_MOVE:
-                if (rbLtr.isChecked()) {
-                    float x = motionEvent.getX();
-                    cursorX += x - spaceX;
-                    spaceX = x;
-                } else {
-                    float y = motionEvent.getY();
-                    cursorY += y - spaceY;
-                    spaceY = y;
-                }
                 space = true;
-                setCursor();
+                if (isWriting) {
+                    if (rbLtr.isChecked() ^ sRotate.isChecked()) {
+                        float x = motionEvent.getX();
+                        clearCanvas(blankCanvas);
+                        blankCanvas.drawBitmap(bitmap, 0.0f, 0.0f, paint);
+                        blankCanvas.drawLine(end += x - spacing, 0.0f, end, height, paint);
+                        ivCanvas.setImageBitmap(blankBitmap);
+                        spacing = x;
+                    } else {
+                        float y = motionEvent.getY();
+                        clearCanvas(blankCanvas);
+                        blankCanvas.drawBitmap(bitmap, 0.0f, 0.0f, paint);
+                        blankCanvas.drawLine(0.0f, end += y - spacing, width, end, paint);
+                        ivCanvas.setImageBitmap(blankBitmap);
+                        spacing = y;
+                    }
+                } else {
+                    if (rbLtr.isChecked()) {
+                        float x = motionEvent.getX();
+                        cursorX += x - spacing;
+                        spacing = x;
+                    } else {
+                        float y = motionEvent.getY();
+                        cursorY += y - spacing;
+                        spacing = y;
+                    }
+                    setCursor();
+                }
                 break;
             case MotionEvent.ACTION_UP:
                 if (space) {
                     space = false;
+                    if (isWriting) {
+                        next((int) end);
+                    }
                 } else {
-                    if (rbLtr.isChecked()) {
-                        cursorX += charWidth / 4.0f;
+                    if (isWriting) {
+                        next((int) ((right - left) / 4.0f * 3.0f));
                     } else {
-                        cursorY += charWidth / 4.0f;
+                        if (rbLtr.isChecked()) {
+                            cursorX += charWidth / 4.0f;
+                        } else {
+                            cursorY += charWidth / 4.0f;
+                        }
                     }
                     setCursor();
                 }
@@ -494,40 +541,67 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void next() {
-        next(false);
+        next(0);
     }
 
-    private void next(boolean rotate) {
+    private void next(int end) {
         isWriting = false;
         clearCanvas(charCanvas);
 
         float charLength;
 
+        Bitmap nextBeginning = null;
+        if (end >= (rbLtr.isChecked() ^ sRotate.isChecked() ? width : height)) {
+            end = 0;
+        }
+
         if (rbLtr.isChecked()) {
 
-            if (!rotate) {
-                charLength = toCharSize(right - left);
-                charCanvas.drawBitmap(bitmap,
-                        rect,
-                        new RectF(0.0f, 0.0f, charWidth, toCharSize(height)),
-                        paint);
+            if (!sRotate.isChecked()) {
+                if (end == 0) {
+                    charLength = toCharSize(right - left);
+                    charCanvas.drawBitmap(bitmap,
+                            rect,
+                            new RectF(0.0f, 0.0f, charWidth, toCharSize(height)),
+                            paint);
+                } else {
+                    nextBeginning = Bitmap.createBitmap(bitmap, end, 0, width - end, height);
+                    charLength = toCharSize(end - left);
+                    charCanvas.drawBitmap(bitmap,
+                            new Rect(0, 0, end, height),
+                            new RectF(0.0f, 0.0f, toCharSize(end), toCharSize(height)),
+                            paint);
+                }
             } else {
-                charLength = toCharSize(bottom - top);
-                Bitmap rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, true);
-                charCanvas.drawBitmap(rotatedBitmap,
-                        rotatedRect,
-                        new RectF(0.0f, 0.0f, toCharSize(height), charWidth),
-                        paint);
+                Bitmap rotatedBitmap;
+                if (end == 0) {
+                    charLength = toCharSize(bottom - top);
+                    rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, true);
+                    charCanvas.drawBitmap(rotatedBitmap,
+                            rotatedRect,
+                            new RectF(0.0f, 0.0f, toCharSize(height), charWidth),
+                            paint);
+                } else {
+                    nextBeginning = Bitmap.createBitmap(bitmap, 0, end, width, height - end);
+                    charLength = toCharSize(end - top);
+                    rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, width, end, matrix, true);
+                    charCanvas.drawBitmap(rotatedBitmap,
+                            new Rect(0, 0, end, width),
+                            new RectF(0.0f, 0.0f, toCharSize(end), charWidth),
+                            paint);
+                }
                 rotatedBitmap.recycle();
             }
 
-            cursorX += columnSpacing;
+            if (left > 0) {
+                cursorX += columnSpacing;
+            }
             if (autoNewline && cursorX + charLength > width) {
                 cursorY += charWidth + lineSpacing;
                 cursorX = 0.0f;
             }
 
-            if (!rotate) {
+            if (!sRotate.isChecked()) {
                 textCanvas.drawBitmap(charBitmap,
                         cursorX - toCharSize(left),
                         cursorY - toCharSize(charTop),
@@ -547,29 +621,51 @@ public class MainActivity extends AppCompatActivity {
 
         } else {
 
-            if (!rotate) {
-                charLength = toCharSize(bottom - top);
-                charCanvas.drawBitmap(bitmap,
-                        rect,
-                        new RectF(0.0f, 0.0f, charWidth, toCharSize(height)),
-                        paint);
+            if (!sRotate.isChecked()) {
+                if (end == 0) {
+                    charLength = toCharSize(bottom - top);
+                    charCanvas.drawBitmap(bitmap,
+                            rect,
+                            new RectF(0.0f, 0.0f, charWidth, toCharSize(height)),
+                            paint);
+                } else {
+                    nextBeginning = Bitmap.createBitmap(bitmap, 0, end, width, height - end);
+                    charLength = toCharSize(end - top);
+                    charCanvas.drawBitmap(bitmap,
+                            new Rect(0, 0, width, end),
+                            new RectF(0.0f, 0.0f, charWidth, toCharSize(end)),
+                            paint);
+                }
             } else {
-                charLength = toCharSize(right - left);
-                Bitmap rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, true);
-                charCanvas.drawBitmap(rotatedBitmap,
-                        rotatedRect,
-                        new RectF(0.0f, 0.0f, toCharSize(height), charWidth),
-                        paint);
+                Bitmap rotatedBitmap;
+                if (end == 0) {
+                    charLength = toCharSize(right - left);
+                    rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, true);
+                    charCanvas.drawBitmap(rotatedBitmap,
+                            rotatedRect,
+                            new RectF(0.0f, 0.0f, toCharSize(height), charWidth),
+                            paint);
+                } else {
+                    nextBeginning = Bitmap.createBitmap(bitmap, 0, 0, end, height);
+                    charLength = toCharSize(right - end);
+                    rotatedBitmap = Bitmap.createBitmap(bitmap, end, 0, width - end, height, matrix, true);
+                    charCanvas.drawBitmap(rotatedBitmap,
+                            new Rect(0, 0, height, end),
+                            new RectF(0.0f, 0.0f, toCharSize(height), toCharSize(end)),
+                            paint);
+                }
                 rotatedBitmap.recycle();
             }
 
-            cursorY += columnSpacing;
+            if (top > 0) {
+                cursorY += columnSpacing;
+            }
             if (autoNewline && cursorY + charLength > height) {
                 cursorX -= charWidth + lineSpacing;
                 cursorY = 0;
             }
 
-            if (!rotate) {
+            if (!sRotate.isChecked()) {
                 textCanvas.drawBitmap(charBitmap, cursorX, cursorY - toCharSize(top), paint);
             } else {
                 textCanvas.drawBitmap(charBitmap, cursorX - toCharSize(top), cursorY, paint);
@@ -584,10 +680,28 @@ public class MainActivity extends AppCompatActivity {
         }
         clearCanvas(canvas);
         setCursor();
-        left = ivCanvas.getWidth();
+        left = width;
         right = 0.0f;
-        top = ivCanvas.getHeight();
+        top = height;
         bottom = 0.0f;
+
+        if (nextBeginning != null) {
+            canvas.drawBitmap(nextBeginning, 0.0f, 0.0f, paint);
+            if (rbLtr.isChecked()) {
+                if (!sRotate.isChecked()) {
+                    left = 0.0f;
+                } else {
+                    top = 0.0f;
+                }
+            } else {
+                if (!sRotate.isChecked()) {
+                    top = 0.0f;
+                } else {
+                    right = width;
+                }
+            }
+        }
+
     }
 
     @Override
@@ -610,6 +724,7 @@ public class MainActivity extends AppCompatActivity {
         rbLtr = findViewById(R.id.rb_ltr);
         rbUtd = findViewById(R.id.rb_utd);
         sbCharLength = findViewById(R.id.sb_char_length);
+        sRotate = findViewById(R.id.s_rotate);
 
         findViewById(R.id.b_backspace).setOnTouchListener(onBackspaceButtonTouchListener);
         bColor.setOnClickListener(onColorButtonClickListener);
@@ -623,8 +738,8 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.b_space).setOnTouchListener(onSpaceButtonTouchListener);
         ivCanvas.setOnTouchListener(onCanvasTouchListener);
         ivPreview.setOnTouchListener(onPreviewTouchListener);
-        ((RadioButton) findViewById(R.id.rb_char_length_auto)).setOnCheckedChangeListener(onCharLengthAutoCompButtCheckedChangeListener);
-        ((RadioButton) findViewById(R.id.rb_char_length_custom)).setOnCheckedChangeListener(onCharLengthCustomCompButtCheckedChangeListener);
+        ((RadioButton) findViewById(R.id.rb_char_length_auto)).setOnCheckedChangeListener(onCharLengthAutoRadButtCheckedChangeListener);
+        ((RadioButton) findViewById(R.id.rb_char_length_custom)).setOnCheckedChangeListener(onCharLengthCustomRadButtCheckedChangeListener);
         ((SeekBar) findViewById(R.id.sb_alias)).setOnSeekBarChangeListener((OnProgressChangeListener) progress -> alias = progress);
         sbCharLength.setOnSeekBarChangeListener(onCharLengthSeekBarProgressChangeListener);
         ((SeekBar) findViewById(R.id.sb_char_width)).setOnSeekBarChangeListener(onCharWidthSeekBarProgressChangeListener);
@@ -635,11 +750,14 @@ public class MainActivity extends AppCompatActivity {
         ((SeekBar) findViewById(R.id.sb_line_spacing)).setOnSeekBarChangeListener(onLineSpacingSeekBarProgressChangeListener);
         ((SeekBar) findViewById(R.id.sb_stroke_width)).setOnSeekBarChangeListener((OnProgressChangeListener) progress -> strokeWidth = progress);
         ((SwitchCompat) findViewById(R.id.s_newline)).setOnCheckedChangeListener((compoundButton, b) -> autoNewline = b);
+        sRotate.setOnCheckedChangeListener(onRotateSwitchCheckedChangeListener);
 
         Resources res = getResources();
-        blackBrush = BitmapFactory.decodeResource(res, R.mipmap.brush);
-        redBrush = BitmapFactory.decodeResource(res, R.mipmap.brush_red);
-        brush = blackBrush.copy(Bitmap.Config.ARGB_8888, true);
+        brushBlack = BitmapFactory.decodeResource(res, R.mipmap.brush);
+        brushBlackRotated = BitmapFactory.decodeResource(res, R.mipmap.brush_rotated);
+        brushRed = BitmapFactory.decodeResource(res, R.mipmap.brush_red);
+        brushRedRotated = BitmapFactory.decodeResource(res, R.mipmap.brush_red_rotated);
+        brush = brushBlack.copy(Bitmap.Config.ARGB_8888, true);
     }
 
     @Override
@@ -647,8 +765,8 @@ public class MainActivity extends AppCompatActivity {
         canvas = null;
         bitmap.recycle();
         bitmap = null;
-        blackBrush.recycle();
-        blackBrush = null;
+        brushBlack.recycle();
+        brushBlack = null;
         blankCanvas = null;
         blankBitmap.recycle();
         blankBitmap = null;
@@ -668,8 +786,8 @@ public class MainActivity extends AppCompatActivity {
         previewPaperCanvas = null;
         previewPaperBitmap.recycle();
         previewPaperBitmap = null;
-        redBrush.recycle();
-        redBrush = null;
+        brushRed.recycle();
+        brushRed = null;
         textCanvas = null;
         textBitmap.recycle();
         textBitmap = null;
@@ -715,10 +833,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setBrushConcentration(double concentration) {
-        int brushWidth = blackBrush.getWidth(), brushHeight = blackBrush.getHeight();
+        int brushWidth = brushBlack.getWidth(), brushHeight = brushBlack.getHeight();
         for (int y = 0; y < brushHeight; ++y) {
             for (int x = 0; x < brushWidth; ++x) {
-                if (blackBrush.getPixel(x, y) != Color.TRANSPARENT) {
+                if (brushBlack.getPixel(x, y) != Color.TRANSPARENT) {
                     brush.setPixel(x, y, Math.random() < concentration ? brushColor : Color.TRANSPARENT);
                 }
             }
@@ -729,10 +847,10 @@ public class MainActivity extends AppCompatActivity {
         if (color == brushColor) {
             return;
         }
-        int brushWidth = blackBrush.getWidth(), brushHeight = blackBrush.getHeight();
+        int brushWidth = brushBlack.getWidth(), brushHeight = brushBlack.getHeight();
         for (int y = 0; y < brushHeight; ++y) {
             for (int x = 0; x < brushWidth; ++x) {
-                if (blackBrush.getPixel(x, y) != Color.TRANSPARENT) {
+                if (brushBlack.getPixel(x, y) != Color.TRANSPARENT) {
                     brush.setPixel(x, y, color);
                 }
             }
