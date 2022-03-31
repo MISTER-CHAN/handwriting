@@ -9,6 +9,7 @@ import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.net.Uri;
@@ -50,9 +51,11 @@ public class MainActivity extends AppCompatActivity {
     private Bitmap previewBitmap;
     private Bitmap previewPaperBitmap;
     private Bitmap textBitmap;
+    private Bitmap textBitmapTranslucent;
     private boolean autoNewline = false;
     private boolean backspace = false;
     private boolean hasNotLoaded = true;
+    private boolean isNotErasing = true;
     private boolean isWriting = false;
     private boolean space = false;
     private Button bColor;
@@ -93,7 +96,7 @@ public class MainActivity extends AppCompatActivity {
     private int width, height;
     private LinearLayout llOptions;
     private LinearLayout llTools;
-    private Matrix matrix = new Matrix();
+    private final Matrix matrix = new Matrix();
     private RadioButton rbLtr, rbUtd;
     private Rect rect;
     private Rect rotatedRect;
@@ -101,6 +104,7 @@ public class MainActivity extends AppCompatActivity {
     private SwitchCompat sRotate;
 
     private final Paint cursor = new Paint() {
+
         {
             setStrokeWidth(8.0f);
             setStyle(Style.STROKE);
@@ -108,18 +112,21 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private final Paint eraser = new Paint() {
+
         {
-            setColor(Color.WHITE);
+            setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
         }
     };
 
     private final Paint paint = new Paint() {
+
         {
             setStrokeWidth(2.0f);
         }
     };
 
     private final Paint previewer = new Paint() {
+
         {
             setStrokeWidth(2.0f);
             setStyle(Style.STROKE);
@@ -133,6 +140,10 @@ public class MainActivity extends AppCompatActivity {
         try (InputStream inputStream = getContentResolver().openInputStream(result)) {
             paper = Bitmap.createScaledBitmap(BitmapFactory.decodeStream(inputStream), width, height, true);
             textCanvas.drawBitmap(paper, 0.0f, 0.0f, paint);
+            if (isWriting) {
+                isWriting = false;
+                clearCanvas(canvas);
+            }
             ivCanvas.setImageBitmap(textBitmap);
             previewPaperCanvas.drawBitmap(paper, 0.0f, 0.0f, paint);
             preview();
@@ -161,27 +172,32 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private final CompoundButton.OnCheckedChangeListener onRotateSwitchCheckedChangeListener = (buttonView, isChecked) -> {
-        Bitmap newBrush = brushColor == Color.BLACK
-                ? isChecked ? brushBlackRotated : brushBlack
-                : isChecked ? brushRedRotated : brushRed;
-        brush = newBrush.copy(Bitmap.Config.ARGB_8888, true);
-    };
+    private final CompoundButton.OnCheckedChangeListener onRotateSwitchCheckedChangeListener = (buttonView, isChecked) ->
+            brush = Bitmap.createBitmap(
+                    brushColor == Color.BLACK
+                    ? isChecked ? brushBlackRotated : brushBlack
+                    : isChecked ? brushRedRotated : brushRed);
 
     private final View.OnClickListener onColorButtonClickListener = view -> {
+        isNotErasing = !isNotErasing;
+        bColor.setTextColor(isNotErasing ? brushColor : Color.WHITE);
+    };
+
+    private final View.OnLongClickListener onColorButtonLongClickListener = view -> {
         if (brushColor == Color.BLACK) {
-            brush = sRotate.isChecked()
-                    ? brushRedRotated.copy(Bitmap.Config.ARGB_8888, true)
-                    : brushRed.copy(Bitmap.Config.ARGB_8888, true);
+            brush = Bitmap.createBitmap(sRotate.isChecked() ? brushRedRotated : brushRed);
             brushColor = Color.RED;
-            bColor.setTextColor(Color.RED);
+            if (isNotErasing) {
+                bColor.setTextColor(Color.RED);
+            }
         } else {
-            brush = sRotate.isChecked()
-                    ? brushBlackRotated.copy(Bitmap.Config.ARGB_8888, true)
-                    : brushBlack.copy(Bitmap.Config.ARGB_8888, true);
+            brush = Bitmap.createBitmap(sRotate.isChecked() ? brushBlackRotated : brushBlack);
             brushColor = Color.BLACK;
-            bColor.setTextColor(Color.BLACK);
+            if (isNotErasing) {
+                bColor.setTextColor(Color.BLACK);
+            }
         }
+        return true;
     };
 
     private final View.OnClickListener onNewButtonClickListener = view ->
@@ -324,44 +340,67 @@ public class MainActivity extends AppCompatActivity {
                     clearCanvas(blankCanvas);
                     blankCanvas.drawBitmap(displayBitmap, 0.0f, 0.0f, paint);
                     blankCanvas.drawColor(TRANSLUCENT);
-                    blankCanvas.drawLine(0.0f, charTop, width, charTop, paint);
-                    blankCanvas.drawLine(0.0f, charBottom, width, charBottom, paint);
-                    blankCanvas.drawLine(width / 2.0f, 0.0f, width / 2.0f, height, paint);
+                    if (!sRotate.isChecked()) {
+                        blankCanvas.drawLine(0.0f, charTop, width, charTop, paint);
+                        blankCanvas.drawLine(0.0f, charBottom, width, charBottom, paint);
+                    } else {
+                        blankCanvas.drawLine(width / 2.0f, 0.0f, width / 2.0f, height, paint);
+                    }
+                    textBitmapTranslucent = Bitmap.createBitmap(blankBitmap);
                     blankCanvas.drawBitmap(bitmap, 0.0f, 0.0f, paint);
                 }
                 break;
             case MotionEvent.ACTION_MOVE:
-                if (x < left) left = x;
-                if (x > right) right = x;
-                if (y < top) top = y;
-                if (y > bottom) bottom = y;
 
-                float d = (float) Math.sqrt(Math.pow(x - prevX, 2) + Math.pow(y - prevY, 2)),
-                        a = d / (float) Math.pow(d, curvature),
-                        w = 0.0f,
-                        width = (float) Math.pow(1 - d / size, handwriting) * strokeWidth,
-                        dBwPD = (width - brushWidth) / d, // Delta brushWidth per d
-                        dxPD = (x - prevX) / d, dyPD = (y - prevY) / d; // Delta x per d and delta y per d
-                if (width >= brushWidth) {
-                    for (float f = 0; f < d; f += alias) {
-                        w = a * (float) Math.pow(f, curvature) * dBwPD + brushWidth;
-                        RectF dst = new RectF(dxPD * f + prevX - w, dyPD * f + prevY - w,
-                                dxPD * f + prevX + w, dyPD * f + prevY + w);
-                        blankCanvas.drawBitmap(brush, SQUARE_WITH_SIDE_LENGTH_192, dst, paint);
-                        canvas.drawBitmap(brush, SQUARE_WITH_SIDE_LENGTH_192, dst, paint);
+                if (isNotErasing) {
+
+                    if (x < left) left = x;
+                    if (x > right) right = x;
+                    if (y < top) top = y;
+                    if (y > bottom) bottom = y;
+
+                    float d = (float) Math.sqrt(Math.pow(x - prevX, 2) + Math.pow(y - prevY, 2)),
+                            a = d / (float) Math.pow(d, curvature),
+                            w = 0.0f,
+                            width = (float) Math.pow(1 - d / size, handwriting) * strokeWidth,
+                            dBwPD = (width - brushWidth) / d, // Delta brushWidth per d
+                            dxPD = (x - prevX) / d, dyPD = (y - prevY) / d; // Delta x per d and delta y per d
+                    if (width >= brushWidth) {
+                        for (float f = 0; f < d; f += alias) {
+                            w = a * (float) Math.pow(f, curvature) * dBwPD + brushWidth;
+                            RectF dst = new RectF(dxPD * f + prevX - w, dyPD * f + prevY - w,
+                                    dxPD * f + prevX + w, dyPD * f + prevY + w);
+                            blankCanvas.drawBitmap(brush, SQUARE_WITH_SIDE_LENGTH_192, dst, paint);
+                            canvas.drawBitmap(brush, SQUARE_WITH_SIDE_LENGTH_192, dst, paint);
+                        }
+                    } else {
+                        for (float f = 0; f < d; f += alias) {
+                            w = (float) Math.pow(f / a, 1 / curvature) * dBwPD + brushWidth;
+                            RectF dst = new RectF(dxPD * f + prevX - w, dyPD * f + prevY - w,
+                                    dxPD * f + prevX + w, dyPD * f + prevY + w);
+                            canvas.drawBitmap(brush, SQUARE_WITH_SIDE_LENGTH_192, dst, paint);
+                            blankCanvas.drawBitmap(brush, SQUARE_WITH_SIDE_LENGTH_192, dst, paint);
+                        }
                     }
+                    brushWidth = w;
+                    prevX = x;
+                    prevY = y;
+
                 } else {
-                    for (float f = 0; f < d; f += alias) {
-                        w = (float) Math.pow(f / a, 1 / curvature) * dBwPD + brushWidth;
-                        RectF dst = new RectF(dxPD * f + prevX - w, dyPD * f + prevY - w,
-                                dxPD * f + prevX + w, dyPD * f + prevY + w);
-                        blankCanvas.drawBitmap(brush, SQUARE_WITH_SIDE_LENGTH_192, dst, paint);
-                        canvas.drawBitmap(brush, SQUARE_WITH_SIDE_LENGTH_192, dst, paint);
+                    int strokeWidth = (int) this.strokeWidth,
+                            halfStrokeWidth = strokeWidth >> 1,
+                            strokeLeft = (int) (x - halfStrokeWidth),
+                            strokeTop = (int) (y - halfStrokeWidth);
+                    canvas.drawRect(strokeLeft, strokeTop, strokeLeft + strokeWidth, strokeTop + strokeWidth, eraser);
+                    if (paper == null) {
+                        blankCanvas.drawRect(strokeLeft, strokeTop, strokeLeft + strokeWidth, strokeTop + strokeWidth, eraser);
+                    } else {
+                        Bitmap bm = Bitmap.createBitmap(textBitmapTranslucent, strokeLeft, strokeTop, strokeWidth, strokeWidth);
+                        blankCanvas.drawBitmap(bm, strokeLeft, strokeTop, paint);
+                        bm.recycle();
                     }
+
                 }
-                brushWidth = w;
-                prevX = x;
-                prevY = y;
 
                 break;
             case MotionEvent.ACTION_UP:
@@ -522,14 +561,21 @@ public class MainActivity extends AppCompatActivity {
         bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         canvas = new Canvas(bitmap);
         matrix.setRotate(-90.0f);
+
         blankBitmap = Bitmap.createBitmap(bitmap);
         blankCanvas = new Canvas(blankBitmap);
+
         charBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         charCanvas = new Canvas(charBitmap);
+
         textBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         textCanvas = new Canvas(textBitmap);
+
+        textBitmapTranslucent = Bitmap.createBitmap(textBitmap);
+
         displayBitmap = Bitmap.createBitmap(textBitmap);
         displayCanvas = new Canvas(displayBitmap);
+
         size = (float) Math.sqrt(Math.pow(width, 2) + Math.pow(height, 2));
         left = width;
         right = 0.0f;
@@ -558,6 +604,7 @@ public class MainActivity extends AppCompatActivity {
         if (rbLtr.isChecked()) {
 
             if (!sRotate.isChecked()) {
+
                 if (end == 0) {
                     charLength = toCharSize(right - left);
                     charCanvas.drawBitmap(bitmap,
@@ -572,7 +619,19 @@ public class MainActivity extends AppCompatActivity {
                             new RectF(0.0f, 0.0f, toCharSize(end), toCharSize(height)),
                             paint);
                 }
+
+                if (left > 0) {
+                    cursorX += columnSpacing;
+                }
+                if (autoNewline && cursorX + charLength > width) {
+                    cursorY += charWidth + lineSpacing;
+                    cursorX = 0.0f;
+                }
+
+                textCanvas.drawBitmap(charBitmap, cursorX - toCharSize(left), cursorY - toCharSize(charTop), paint);
+
             } else {
+
                 Bitmap rotatedBitmap;
                 if (end == 0) {
                     charLength = toCharSize(bottom - top);
@@ -591,26 +650,16 @@ public class MainActivity extends AppCompatActivity {
                             paint);
                 }
                 rotatedBitmap.recycle();
-            }
 
-            if (left > 0) {
-                cursorX += columnSpacing;
-            }
-            if (autoNewline && cursorX + charLength > width) {
-                cursorY += charWidth + lineSpacing;
-                cursorX = 0.0f;
-            }
+                if (top > 0) {
+                    cursorX += columnSpacing;
+                }
+                if (autoNewline && cursorX + charLength > width) {
+                    cursorY += charWidth + lineSpacing;
+                    cursorX = 0.0f;
+                }
 
-            if (!sRotate.isChecked()) {
-                textCanvas.drawBitmap(charBitmap,
-                        cursorX - toCharSize(left),
-                        cursorY - toCharSize(charTop),
-                        paint);
-            } else {
-                textCanvas.drawBitmap(charBitmap,
-                        cursorX - toCharSize(top),
-                        cursorY,
-                        paint);
+                textCanvas.drawBitmap(charBitmap, cursorX - toCharSize(top), cursorY, paint);
             }
 
             cursorX += this.charLength == -1.0f ? charLength : this.charLength;
@@ -622,6 +671,7 @@ public class MainActivity extends AppCompatActivity {
         } else {
 
             if (!sRotate.isChecked()) {
+
                 if (end == 0) {
                     charLength = toCharSize(bottom - top);
                     charCanvas.drawBitmap(bitmap,
@@ -636,7 +686,19 @@ public class MainActivity extends AppCompatActivity {
                             new RectF(0.0f, 0.0f, charWidth, toCharSize(end)),
                             paint);
                 }
+
+                if (top > 0) {
+                    cursorY += columnSpacing;
+                }
+                if (autoNewline && cursorY + charLength > height) {
+                    cursorX -= charWidth + lineSpacing;
+                    cursorY = 0;
+                }
+
+                textCanvas.drawBitmap(charBitmap, cursorX, cursorY - toCharSize(top), paint);
+
             } else {
+
                 Bitmap rotatedBitmap;
                 if (end == 0) {
                     charLength = toCharSize(right - left);
@@ -655,20 +717,17 @@ public class MainActivity extends AppCompatActivity {
                             paint);
                 }
                 rotatedBitmap.recycle();
-            }
 
-            if (top > 0) {
-                cursorY += columnSpacing;
-            }
-            if (autoNewline && cursorY + charLength > height) {
-                cursorX -= charWidth + lineSpacing;
-                cursorY = 0;
-            }
+                if (right < width) {
+                    cursorY += columnSpacing;
+                }
+                if (autoNewline && cursorY + charLength > height) {
+                    cursorX -= charWidth + lineSpacing;
+                    cursorY = 0;
+                }
 
-            if (!sRotate.isChecked()) {
-                textCanvas.drawBitmap(charBitmap, cursorX, cursorY - toCharSize(top), paint);
-            } else {
                 textCanvas.drawBitmap(charBitmap, cursorX - toCharSize(top), cursorY, paint);
+
             }
 
             cursorY += this.charLength == -1.0f ? charLength : this.charLength;
@@ -757,7 +816,7 @@ public class MainActivity extends AppCompatActivity {
         brushBlackRotated = BitmapFactory.decodeResource(res, R.mipmap.brush_rotated);
         brushRed = BitmapFactory.decodeResource(res, R.mipmap.brush_red);
         brushRedRotated = BitmapFactory.decodeResource(res, R.mipmap.brush_red_rotated);
-        brush = brushBlack.copy(Bitmap.Config.ARGB_8888, true);
+        brush = Bitmap.createBitmap(brushBlack);
     }
 
     @Override
