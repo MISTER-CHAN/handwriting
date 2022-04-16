@@ -173,10 +173,10 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private final CompoundButton.OnCheckedChangeListener onRotateSwitchCheckedChangeListener = (buttonView, isChecked) ->
-            brush = Bitmap.createBitmap(
-                    brushColor == Color.BLACK
+            brush = (brushColor == Color.BLACK
                     ? isChecked ? brushBlackRotated : brushBlack
-                    : isChecked ? brushRedRotated : brushRed);
+                    : isChecked ? brushRedRotated : brushRed)
+                    .copy(Bitmap.Config.ARGB_8888, true);
 
     private final View.OnClickListener onColorButtonClickListener = view -> {
         isNotErasing = !isNotErasing;
@@ -185,13 +185,13 @@ public class MainActivity extends AppCompatActivity {
 
     private final View.OnLongClickListener onColorButtonLongClickListener = view -> {
         if (brushColor == Color.BLACK) {
-            brush = Bitmap.createBitmap(sRotate.isChecked() ? brushRedRotated : brushRed);
+            brush = (sRotate.isChecked() ? brushRedRotated : brushRed).copy(Bitmap.Config.ARGB_8888, true);
             brushColor = Color.RED;
             if (isNotErasing) {
                 bColor.setTextColor(Color.RED);
             }
         } else {
-            brush = Bitmap.createBitmap(sRotate.isChecked() ? brushBlackRotated : brushBlack);
+            brush = (sRotate.isChecked() ? brushBlackRotated : brushBlack).copy(Bitmap.Config.ARGB_8888, true);
             brushColor = Color.BLACK;
             if (isNotErasing) {
                 bColor.setTextColor(Color.BLACK);
@@ -816,7 +816,7 @@ public class MainActivity extends AppCompatActivity {
         brushBlackRotated = BitmapFactory.decodeResource(res, R.mipmap.brush_rotated);
         brushRed = BitmapFactory.decodeResource(res, R.mipmap.brush_red);
         brushRedRotated = BitmapFactory.decodeResource(res, R.mipmap.brush_red_rotated);
-        brush = Bitmap.createBitmap(brushBlack);
+        brush = brushBlack.copy(Bitmap.Config.ARGB_8888, true);
     }
 
     @Override
