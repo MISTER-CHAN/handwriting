@@ -100,7 +100,7 @@ public class MainActivity extends AppCompatActivity {
     private RadioButton rbLtr, rbUtd;
     private Rect rect;
     private Rect rotatedRect;
-    private SeekBar sbCharLength;
+    private SeekBar sbCharLength, sbConcentration;
     private SwitchCompat sRotate;
 
     private final Paint cursor = new Paint() {
@@ -172,11 +172,13 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private final CompoundButton.OnCheckedChangeListener onRotateSwitchCheckedChangeListener = (buttonView, isChecked) ->
-            brush = (brushColor == Color.BLACK
-                    ? isChecked ? brushBlackRotated : brushBlack
-                    : isChecked ? brushRedRotated : brushRed)
-                    .copy(Bitmap.Config.ARGB_8888, true);
+    private final CompoundButton.OnCheckedChangeListener onRotateSwitchCheckedChangeListener = (buttonView, isChecked) -> {
+        brush = (brushColor == Color.BLACK
+                ? isChecked ? brushBlackRotated : brushBlack
+                : isChecked ? brushRedRotated : brushRed)
+                .copy(Bitmap.Config.ARGB_8888, true);
+        setBrushConcentration((double) sbConcentration.getProgress() / 10.0);
+    };
 
     private final View.OnClickListener onColorButtonClickListener = view -> {
         isNotErasing = !isNotErasing;
@@ -197,6 +199,7 @@ public class MainActivity extends AppCompatActivity {
                 bColor.setTextColor(Color.BLACK);
             }
         }
+        setBrushConcentration((double) sbConcentration.getProgress() / 10.0);
         return true;
     };
 
@@ -783,10 +786,12 @@ public class MainActivity extends AppCompatActivity {
         rbLtr = findViewById(R.id.rb_ltr);
         rbUtd = findViewById(R.id.rb_utd);
         sbCharLength = findViewById(R.id.sb_char_length);
+        sbConcentration = findViewById(R.id.sb_concentration);
         sRotate = findViewById(R.id.s_rotate);
 
         findViewById(R.id.b_backspace).setOnTouchListener(onBackspaceButtonTouchListener);
         bColor.setOnClickListener(onColorButtonClickListener);
+        bColor.setOnLongClickListener(onColorButtonLongClickListener);
         bNew.setOnClickListener(onNewButtonClickListener);
         bNew.setOnLongClickListener(onNewButtonLongClickListener);
         findViewById(R.id.b_next).setOnClickListener(onNextButtonClickListener);
@@ -892,10 +897,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setBrushConcentration(double concentration) {
-        int brushWidth = brushBlack.getWidth(), brushHeight = brushBlack.getHeight();
+        Bitmap concentratedBrush = sRotate.isChecked() ? brushBlackRotated : brushBlack;
+        int brushWidth = concentratedBrush.getWidth(), brushHeight = concentratedBrush.getHeight();
         for (int y = 0; y < brushHeight; ++y) {
             for (int x = 0; x < brushWidth; ++x) {
-                if (brushBlack.getPixel(x, y) != Color.TRANSPARENT) {
+                if (concentratedBrush.getPixel(x, y) != Color.TRANSPARENT) {
                     brush.setPixel(x, y, Math.random() < concentration ? brushColor : Color.TRANSPARENT);
                 }
             }
