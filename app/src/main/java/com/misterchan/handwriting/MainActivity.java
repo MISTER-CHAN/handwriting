@@ -133,7 +133,7 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    ActivityResultCallback<Uri> imageActivityResultCallback = result -> {
+    private final ActivityResultCallback<Uri> imageActivityResultCallback = result -> {
         if (result == null) {
             return;
         }
