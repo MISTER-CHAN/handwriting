@@ -114,6 +114,9 @@ public class MainActivity extends AppCompatActivity {
     private final Paint eraser = new Paint() {
 
         {
+            setAntiAlias(false);
+            setColor(Color.BLACK);
+            setDither(false);
             setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
         }
     };
