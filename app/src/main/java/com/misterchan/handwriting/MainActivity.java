@@ -928,7 +928,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void setBrushAlpha(int alpha) {
         int color = brushColor - 0xFF000000 + (alpha * alpha - 1) * 0x1000000;
-        Log.d("c", (alpha*alpha-1)+","+color+"");
         int brushWidth = brush.getWidth(), brushHeight = brush.getHeight();
         for (int y = 0; y < brushHeight; ++y) {
             for (int x = 0; x < brushWidth; ++x) {
