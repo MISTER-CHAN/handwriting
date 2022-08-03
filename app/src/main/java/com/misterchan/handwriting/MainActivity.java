@@ -14,7 +14,6 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
@@ -100,7 +99,7 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout llOptions;
     private LinearLayout llTools;
     private final Matrix matrix = new Matrix();
-    private RadioButton rbLtr, rbUtd;
+    private RadioButton rbHorizontalWriting, rbVerticalWriting;
     private Rect rect;
     private Rect rotatedRect;
     private SeekBar sbAlpha;
@@ -256,7 +255,7 @@ public class MainActivity extends AppCompatActivity {
         if (isWriting) {
             next();
         } else {
-            if (rbLtr.isChecked()) {
+            if (rbHorizontalWriting.isChecked()) {
                 cursorX = 0.0f;
                 cursorY += charWidth + lineSpacing;
             } else {
@@ -325,7 +324,7 @@ public class MainActivity extends AppCompatActivity {
                 backspaceY = motionEvent.getY();
                 break;
             case MotionEvent.ACTION_MOVE:
-                if (rbLtr.isChecked()) {
+                if (rbHorizontalWriting.isChecked()) {
                     float x = motionEvent.getX();
                     int deltaX = (int) (backspaceX - x);
                     if (deltaX != 0) {
@@ -457,7 +456,7 @@ public class MainActivity extends AppCompatActivity {
         switch (motionEvent.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 if (isWriting) {
-                    if (rbLtr.isChecked() ^ sRotate.isChecked()) {
+                    if (rbHorizontalWriting.isChecked() ^ sRotate.isChecked()) {
                         spacing = motionEvent.getX();
                         end = width;
                     } else {
@@ -467,13 +466,13 @@ public class MainActivity extends AppCompatActivity {
                     cuttingBitmap = Bitmap.createBitmap(blankBitmap);
                     cuttingCanvas = new Canvas(cuttingBitmap);
                 } else {
-                    spacing = rbLtr.isChecked() ? motionEvent.getX() : motionEvent.getY();
+                    spacing = rbHorizontalWriting.isChecked() ? motionEvent.getX() : motionEvent.getY();
                 }
                 break;
             case MotionEvent.ACTION_MOVE:
                 space = true;
                 if (isWriting) {
-                    if (rbLtr.isChecked() ^ sRotate.isChecked()) {
+                    if (rbHorizontalWriting.isChecked() ^ sRotate.isChecked()) {
                         float x = motionEvent.getX();
                         clearCanvas(cuttingCanvas);
                         cuttingCanvas.drawBitmap(blankBitmap, 0.0f, 0.0f, paint);
@@ -489,7 +488,7 @@ public class MainActivity extends AppCompatActivity {
                         spacing = y;
                     }
                 } else {
-                    if (rbLtr.isChecked()) {
+                    if (rbHorizontalWriting.isChecked()) {
                         float x = motionEvent.getX();
                         cursorX += x - spacing;
                         spacing = x;
@@ -506,16 +505,12 @@ public class MainActivity extends AppCompatActivity {
                     space = false;
                     if (isWriting) {
                         next((int) end);
-                        startWriting();
-                        ivCanvas.setImageBitmap(blankBitmap);
                     }
                 } else {
                     if (isWriting) {
                         next((int) ((right - left) / 4.0f * 3.0f));
-                        startWriting();
-                        ivCanvas.setImageBitmap(blankBitmap);
                     } else {
-                        if (rbLtr.isChecked()) {
+                        if (rbHorizontalWriting.isChecked()) {
                             cursorX += charWidth / 4.0f;
                         } else {
                             cursorY += charWidth / 4.0f;
@@ -534,7 +529,7 @@ public class MainActivity extends AppCompatActivity {
             clearCanvas(canvas);
             ivCanvas.setImageBitmap(displayBitmap);
         } else {
-            if (rbLtr.isChecked()) {
+            if (rbHorizontalWriting.isChecked()) {
 
                 if (cursorX > 0) {
                     cursorX -= size;
@@ -623,11 +618,11 @@ public class MainActivity extends AppCompatActivity {
         float charLength;
 
         Bitmap nextBeginning = null;
-        if (end >= (rbLtr.isChecked() ^ sRotate.isChecked() ? width : height)) {
+        if (end >= (rbHorizontalWriting.isChecked() ^ sRotate.isChecked() ? width : height)) {
             end = 0;
         }
 
-        if (rbLtr.isChecked()) {
+        if (rbHorizontalWriting.isChecked()) {
 
             if (!sRotate.isChecked()) {
 
@@ -772,7 +767,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (nextBeginning != null) {
             canvas.drawBitmap(nextBeginning, 0.0f, 0.0f, paint);
-            if (rbLtr.isChecked()) {
+            if (rbHorizontalWriting.isChecked()) {
                 if (!sRotate.isChecked()) {
                     left = 0.0f;
                 } else {
@@ -785,6 +780,8 @@ public class MainActivity extends AppCompatActivity {
                     right = width;
                 }
             }
+            startWriting();
+            ivCanvas.setImageBitmap(blankBitmap);
         }
 
     }
@@ -806,8 +803,8 @@ public class MainActivity extends AppCompatActivity {
         ivPreview = findViewById(R.id.iv_preview);
         llOptions = findViewById(R.id.ll_options);
         llTools = findViewById(R.id.ll_tools);
-        rbLtr = findViewById(R.id.rb_horizontal_writing);
-        rbUtd = findViewById(R.id.rb_vertical_writing);
+        rbHorizontalWriting = findViewById(R.id.rb_horizontal_writing);
+        rbVerticalWriting = findViewById(R.id.rb_vertical_writing);
         sbAlpha = findViewById(R.id.sb_alpha);
         sbCharLength = findViewById(R.id.sb_char_length);
         sbConcentration = findViewById(R.id.sb_concentration);
@@ -828,7 +825,7 @@ public class MainActivity extends AppCompatActivity {
         ivPreview.setOnTouchListener(onPreviewTouchListener);
         ((RadioButton) findViewById(R.id.rb_char_length_auto)).setOnCheckedChangeListener(onCharLengthAutoRadButtCheckedChangeListener);
         ((RadioButton) findViewById(R.id.rb_char_length_custom)).setOnCheckedChangeListener(onCharLengthCustomRadButtCheckedChangeListener);
-        rbLtr.setOnCheckedChangeListener((compoundButton, isChecked) -> preview());
+        rbHorizontalWriting.setOnCheckedChangeListener((compoundButton, isChecked) -> preview());
         ((SeekBar) findViewById(R.id.sb_alias)).setOnSeekBarChangeListener((OnProgressChangeListener) progress -> alias = progress);
         sbAlpha.setOnSeekBarChangeListener(onAlphaSeekBarChangeListener);
         sbCharLength.setOnSeekBarChangeListener(onCharLengthSeekBarProgressChangeListener);
@@ -908,7 +905,7 @@ public class MainActivity extends AppCompatActivity {
         clearCanvas(previewCanvas);
         previewCanvas.drawBitmap(previewPaperBitmap, 0.0f, 0.0f, previewer);
         float charLength = (this.charLength == -1.0f ? charWidth : this.charLength);
-        if (rbLtr.isChecked()) {
+        if (rbHorizontalWriting.isChecked()) {
             previewCanvas.drawRect(previewX, previewY,
                     previewX + charLength, previewY + charWidth,
                     previewer);
