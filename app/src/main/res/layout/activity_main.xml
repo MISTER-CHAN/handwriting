@@ -40,21 +40,21 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="紙" />
+                android:text="@string/paper" />
 
             <Button
                 android:id="@+id/b_paper"
                 style="?android:attr/buttonBarButtonStyle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="選擇..." />
+                android:text="@string/browse" />
 
             <Button
                 android:id="@+id/b_new"
                 style="?android:attr/buttonBarButtonStyle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="新紙" />
+                android:text="@string/new_paper" />
         </LinearLayout>
 
         <LinearLayout
@@ -68,7 +68,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="方向" />
+                android:text="@string/direction" />
 
             <RadioGroup
                 android:layout_width="wrap_content"
@@ -76,17 +76,17 @@
                 android:orientation="horizontal">
 
                 <RadioButton
-                    android:id="@+id/rb_ltr"
+                    android:id="@+id/rb_horizontal_writing"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:checked="true"
-                    android:text="左至右" />
+                    android:text="@string/horizontal" />
 
                 <RadioButton
-                    android:id="@+id/rb_utd"
+                    android:id="@+id/rb_vertical_writing"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="上至下" />
+                    android:text="@string/vertical" />
             </RadioGroup>
 
         </LinearLayout>
@@ -102,7 +102,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="自動換行" />
+                android:text="@string/line_wrap" />
 
             <androidx.appcompat.widget.SwitchCompat
                 android:id="@+id/s_newline"
@@ -121,7 +121,7 @@
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:text="筆觸軟度" />
+                android:text="@string/handwriting" />
 
             <SeekBar
                 android:id="@+id/sb_handwriting"
@@ -143,7 +143,7 @@
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:text="筆墨濃度" />
+                android:text="@string/concentration" />
 
             <SeekBar
                 android:id="@+id/sb_concentration"
@@ -165,7 +165,30 @@
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:text="鋸齒" />
+                android:text="@string/alpha" />
+
+            <SeekBar
+                android:id="@+id/sb_alpha"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="5"
+                android:max="16"
+                android:min="1"
+                android:progress="16" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="8dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="@string/alias" />
 
             <SeekBar
                 android:id="@+id/sb_alias"
@@ -173,6 +196,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="5"
                 android:max="20"
+                android:min="1"
                 android:progress="8" />
         </LinearLayout>
 
@@ -187,7 +211,7 @@
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:text="過渡性" />
+                android:text="@string/curvature" />
 
             <SeekBar
                 android:id="@+id/sb_curvature"
@@ -209,7 +233,7 @@
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:text="列間距" />
+                android:text="@string/column_spacing" />
 
             <SeekBar
                 android:id="@+id/sb_column_spacing"
@@ -231,7 +255,7 @@
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:text="行間距" />
+                android:text="@string/line_spacing" />
 
             <SeekBar
                 android:id="@+id/sb_line_spacing"
@@ -253,10 +277,10 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="橫向寫字板" />
+                android:text="@string/rotating" />
 
             <androidx.appcompat.widget.SwitchCompat
-                android:id="@+id/s_rotate"
+                android:id="@+id/s_rotating"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content" />
         </LinearLayout>
@@ -272,7 +296,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="字符長度" />
+                android:text="@string/char_length" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -291,13 +315,13 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:checked="true"
-                        android:text="自動" />
+                        android:text="@string/automatic" />
 
                     <RadioButton
                         android:id="@+id/rb_char_length_custom"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="自訂" />
+                        android:text="@string/custom" />
                 </RadioGroup>
 
                 <SeekBar
@@ -322,7 +346,7 @@
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:text="字符尺寸" />
+                android:text="@string/char_width" />
 
             <SeekBar
                 android:id="@+id/sb_char_width"
@@ -346,7 +370,7 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:text="筆畫寬度" />
+            android:text="@string/stroke_width" />
 
         <SeekBar
             android:id="@+id/sb_stroke_width"
@@ -374,7 +398,7 @@
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:text="▶"
+                android:text="@string/next"
                 android:textStyle="bold" />
 
             <Button
@@ -383,7 +407,7 @@
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:text="－"
+                android:text="@string/space"
                 android:textStyle="bold" />
 
             <Button
@@ -392,7 +416,7 @@
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:text="⌫"
+                android:text="@string/backspace"
                 android:textStyle="bold" />
 
             <Button
@@ -401,7 +425,7 @@
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:text="↵"
+                android:text="@string/return_symbol"
                 android:textStyle="bold" />
         </LinearLayout>
 
@@ -411,7 +435,7 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:text="█"
+            android:text="@string/color"
             android:textColor="#000000"
             android:textStyle="bold" />
 
@@ -421,7 +445,7 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:text="..."
+            android:text="@string/options"
             android:textStyle="bold" />
     </LinearLayout>
 </LinearLayout>

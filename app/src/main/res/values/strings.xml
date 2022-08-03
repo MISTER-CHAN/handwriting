@@ -1,3 +1,29 @@
 <resources>
+    <string name="alias">鋸齒</string>
+    <string name="alpha">不透明度</string>
     <string name="app_name">Handwriting</string>
+    <string name="automatic">自動</string>
+    <string name="backspace">⌫</string>
+    <string name="browse">選擇…</string>
+    <string name="char_length">字符長度</string>
+    <string name="char_width">字符尺寸</string>
+    <string name="color">█</string>
+    <string name="column_spacing">列間距</string>
+    <string name="concentration">筆墨濃度</string>
+    <string name="curvature">過渡性</string>
+    <string name="custom">自訂</string>
+    <string name="direction">方向</string>
+    <string name="handwriting">筆觸軟度</string>
+    <string name="horizontal">横書</string>
+    <string name="line_spacing">行間距</string>
+    <string name="line_wrap">自動換行</string>
+    <string name="new_paper">新紙</string>
+    <string name="next">▶</string>
+    <string name="options">…</string>
+    <string name="paper">紙</string>
+    <string name="return_symbol">↵</string>
+    <string name="rotating">橫向寫字板</string>
+    <string name="space">－</string>
+    <string name="stroke_width">筆畫寬度</string>
+    <string name="vertical">縱書</string>
 </resources>

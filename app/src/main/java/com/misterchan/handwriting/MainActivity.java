@@ -14,6 +14,7 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
@@ -46,6 +47,7 @@ public class MainActivity extends AppCompatActivity {
     private Bitmap brushRed;
     private Bitmap brushRedRotated;
     private Bitmap charBitmap;
+    private Bitmap cuttingBitmap;
     private Bitmap displayBitmap;
     private Bitmap paper;
     private Bitmap previewBitmap;
@@ -63,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
     private Canvas blankCanvas;
     private Canvas canvas;
     private Canvas charCanvas;
+    private Canvas cuttingCanvas;
     private Canvas displayCanvas;
     private Canvas previewCanvas;
     private Canvas previewPaperCanvas;
@@ -100,7 +103,9 @@ public class MainActivity extends AppCompatActivity {
     private RadioButton rbLtr, rbUtd;
     private Rect rect;
     private Rect rotatedRect;
-    private SeekBar sbCharLength, sbConcentration;
+    private SeekBar sbAlpha;
+    private SeekBar sbCharLength;
+    private SeekBar sbConcentration;
     private SwitchCompat sRotate;
 
     private final Paint cursor = new Paint() {
@@ -282,6 +287,21 @@ public class MainActivity extends AppCompatActivity {
         preview();
     };
 
+    private final SeekBar.OnSeekBarChangeListener onAlphaSeekBarChangeListener = new SeekBar.OnSeekBarChangeListener() {
+        @Override
+        public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+        }
+
+        @Override
+        public void onStartTrackingTouch(SeekBar seekBar) {
+        }
+
+        @Override
+        public void onStopTrackingTouch(SeekBar seekBar) {
+            setBrushAlpha(seekBar.getProgress());
+        }
+    };
+
     private final SeekBar.OnSeekBarChangeListener onConcentrationSeekBarChangeListener = new SeekBar.OnSeekBarChangeListener() {
         @Override
         public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
@@ -342,18 +362,7 @@ public class MainActivity extends AppCompatActivity {
                 prevY = y;
                 brushWidth = 0.0f;
                 if (!isWriting) {
-                    isWriting = true;
-                    clearCanvas(blankCanvas);
-                    blankCanvas.drawBitmap(displayBitmap, 0.0f, 0.0f, paint);
-                    blankCanvas.drawColor(TRANSLUCENT);
-                    if (!sRotate.isChecked()) {
-                        blankCanvas.drawLine(0.0f, charTop, width, charTop, paint);
-                        blankCanvas.drawLine(0.0f, charBottom, width, charBottom, paint);
-                    } else {
-                        blankCanvas.drawLine(width / 2.0f, 0.0f, width / 2.0f, height, paint);
-                    }
-                    textBitmapTranslucent = Bitmap.createBitmap(blankBitmap);
-                    blankCanvas.drawBitmap(bitmap, 0.0f, 0.0f, paint);
+                    startWriting();
                 }
                 break;
             case MotionEvent.ACTION_MOVE:
@@ -448,8 +457,15 @@ public class MainActivity extends AppCompatActivity {
         switch (motionEvent.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 if (isWriting) {
-                    spacing = rbLtr.isChecked() ^ sRotate.isChecked() ? motionEvent.getX() : motionEvent.getY();
-                    end = rbLtr.isChecked() ^ sRotate.isChecked() ? width : height;
+                    if (rbLtr.isChecked() ^ sRotate.isChecked()) {
+                        spacing = motionEvent.getX();
+                        end = width;
+                    } else {
+                        spacing = motionEvent.getY();
+                        end = height;
+                    }
+                    cuttingBitmap = Bitmap.createBitmap(blankBitmap);
+                    cuttingCanvas = new Canvas(cuttingBitmap);
                 } else {
                     spacing = rbLtr.isChecked() ? motionEvent.getX() : motionEvent.getY();
                 }
@@ -459,17 +475,17 @@ public class MainActivity extends AppCompatActivity {
                 if (isWriting) {
                     if (rbLtr.isChecked() ^ sRotate.isChecked()) {
                         float x = motionEvent.getX();
-                        clearCanvas(blankCanvas);
-                        blankCanvas.drawBitmap(bitmap, 0.0f, 0.0f, paint);
-                        blankCanvas.drawLine(end += x - spacing, 0.0f, end, height, paint);
-                        ivCanvas.setImageBitmap(blankBitmap);
+                        clearCanvas(cuttingCanvas);
+                        cuttingCanvas.drawBitmap(blankBitmap, 0.0f, 0.0f, paint);
+                        cuttingCanvas.drawLine(end += x - spacing, 0.0f, end, height, paint);
+                        ivCanvas.setImageBitmap(cuttingBitmap);
                         spacing = x;
                     } else {
                         float y = motionEvent.getY();
-                        clearCanvas(blankCanvas);
-                        blankCanvas.drawBitmap(bitmap, 0.0f, 0.0f, paint);
-                        blankCanvas.drawLine(0.0f, end += y - spacing, width, end, paint);
-                        ivCanvas.setImageBitmap(blankBitmap);
+                        clearCanvas(cuttingCanvas);
+                        cuttingCanvas.drawBitmap(blankBitmap, 0.0f, 0.0f, paint);
+                        cuttingCanvas.drawLine(0.0f, end += y - spacing, width, end, paint);
+                        ivCanvas.setImageBitmap(cuttingBitmap);
                         spacing = y;
                     }
                 } else {
@@ -490,10 +506,14 @@ public class MainActivity extends AppCompatActivity {
                     space = false;
                     if (isWriting) {
                         next((int) end);
+                        startWriting();
+                        ivCanvas.setImageBitmap(blankBitmap);
                     }
                 } else {
                     if (isWriting) {
                         next((int) ((right - left) / 4.0f * 3.0f));
+                        startWriting();
+                        ivCanvas.setImageBitmap(blankBitmap);
                     } else {
                         if (rbLtr.isChecked()) {
                             cursorX += charWidth / 4.0f;
@@ -536,7 +556,7 @@ public class MainActivity extends AppCompatActivity {
                 if (cursorY > 0) {
                     cursorY -= size;
                 } else {
-                    cursorX -= charWidth;
+                    cursorX += charWidth;
                     cursorY = height - size;
                 }
 
@@ -786,11 +806,12 @@ public class MainActivity extends AppCompatActivity {
         ivPreview = findViewById(R.id.iv_preview);
         llOptions = findViewById(R.id.ll_options);
         llTools = findViewById(R.id.ll_tools);
-        rbLtr = findViewById(R.id.rb_ltr);
-        rbUtd = findViewById(R.id.rb_utd);
+        rbLtr = findViewById(R.id.rb_horizontal_writing);
+        rbUtd = findViewById(R.id.rb_vertical_writing);
+        sbAlpha = findViewById(R.id.sb_alpha);
         sbCharLength = findViewById(R.id.sb_char_length);
         sbConcentration = findViewById(R.id.sb_concentration);
-        sRotate = findViewById(R.id.s_rotate);
+        sRotate = findViewById(R.id.s_rotating);
 
         findViewById(R.id.b_backspace).setOnTouchListener(onBackspaceButtonTouchListener);
         bColor.setOnClickListener(onColorButtonClickListener);
@@ -807,7 +828,9 @@ public class MainActivity extends AppCompatActivity {
         ivPreview.setOnTouchListener(onPreviewTouchListener);
         ((RadioButton) findViewById(R.id.rb_char_length_auto)).setOnCheckedChangeListener(onCharLengthAutoRadButtCheckedChangeListener);
         ((RadioButton) findViewById(R.id.rb_char_length_custom)).setOnCheckedChangeListener(onCharLengthCustomRadButtCheckedChangeListener);
+        rbLtr.setOnCheckedChangeListener((compoundButton, isChecked) -> preview());
         ((SeekBar) findViewById(R.id.sb_alias)).setOnSeekBarChangeListener((OnProgressChangeListener) progress -> alias = progress);
+        sbAlpha.setOnSeekBarChangeListener(onAlphaSeekBarChangeListener);
         sbCharLength.setOnSeekBarChangeListener(onCharLengthSeekBarProgressChangeListener);
         ((SeekBar) findViewById(R.id.sb_char_width)).setOnSeekBarChangeListener(onCharWidthSeekBarProgressChangeListener);
         ((SeekBar) findViewById(R.id.sb_column_spacing)).setOnSeekBarChangeListener(onColSpacingSeekBarProgressChangeListener);
@@ -842,6 +865,9 @@ public class MainActivity extends AppCompatActivity {
         charCanvas = null;
         charBitmap.recycle();
         charBitmap = null;
+        cuttingCanvas = null;
+        cuttingBitmap.recycle();
+        cuttingBitmap = null;
         displayCanvas = null;
         displayBitmap.recycle();
         displayBitmap = null;
@@ -877,6 +903,7 @@ public class MainActivity extends AppCompatActivity {
             previewCanvas = new Canvas(previewBitmap);
             previewX = previewWidth >> 1;
             previewY = previewHeight >> 1;
+            ivPreview.setImageBitmap(previewBitmap);
         }
         clearCanvas(previewCanvas);
         previewCanvas.drawBitmap(previewPaperBitmap, 0.0f, 0.0f, previewer);
@@ -896,16 +923,30 @@ public class MainActivity extends AppCompatActivity {
                     previewX + charWidth + lineSpacing, previewY + charLength + columnSpacing,
                     previewer);
         }
-        ivPreview.setImageBitmap(previewBitmap);
+        ivPreview.invalidate();
+    }
+
+    private void setBrushAlpha(int alpha) {
+        int color = brushColor - 0xFF000000 + (alpha * alpha - 1) * 0x1000000;
+        Log.d("c", (alpha*alpha-1)+","+color+"");
+        int brushWidth = brush.getWidth(), brushHeight = brush.getHeight();
+        for (int y = 0; y < brushHeight; ++y) {
+            for (int x = 0; x < brushWidth; ++x) {
+                if (brush.getPixel(x, y) != Color.TRANSPARENT) {
+                    brush.setPixel(x, y, color);
+                }
+            }
+        }
     }
 
     private void setBrushConcentration(double concentration) {
         Bitmap concentratedBrush = sRotate.isChecked() ? brushBlackRotated : brushBlack;
+        int alpha = sbAlpha.getProgress(), color = brushColor - 0xFF000000 + (alpha * alpha - 1) * 0x1000000;
         int brushWidth = concentratedBrush.getWidth(), brushHeight = concentratedBrush.getHeight();
         for (int y = 0; y < brushHeight; ++y) {
             for (int x = 0; x < brushWidth; ++x) {
                 if (concentratedBrush.getPixel(x, y) != Color.TRANSPARENT) {
-                    brush.setPixel(x, y, Math.random() < concentration ? brushColor : Color.TRANSPARENT);
+                    brush.setPixel(x, y, Math.random() < concentration ? color : Color.TRANSPARENT);
                 }
             }
         }
@@ -938,6 +979,21 @@ public class MainActivity extends AppCompatActivity {
                 cursorX + charWidth, cursorY + charWidth,
                 cursor);
         ivCanvas.setImageBitmap(displayBitmap);
+    }
+
+    private void startWriting() {
+        isWriting = true;
+        clearCanvas(blankCanvas);
+        blankCanvas.drawBitmap(displayBitmap, 0.0f, 0.0f, paint);
+        blankCanvas.drawColor(TRANSLUCENT);
+        if (!sRotate.isChecked()) {
+            blankCanvas.drawLine(0.0f, charTop, width, charTop, paint);
+            blankCanvas.drawLine(0.0f, charBottom, width, charBottom, paint);
+        } else {
+            blankCanvas.drawLine(width / 2.0f, 0.0f, width / 2.0f, height, paint);
+        }
+        textBitmapTranslucent = Bitmap.createBitmap(blankBitmap);
+        blankCanvas.drawBitmap(bitmap, 0.0f, 0.0f, paint);
     }
 
     private float toCharSize(float size) {
