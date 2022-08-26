@@ -145,6 +145,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         try (InputStream inputStream = getContentResolver().openInputStream(result)) {
+            recycleBitmap(paper);
             paper = Bitmap.createScaledBitmap(BitmapFactory.decodeStream(inputStream), width, height, true);
             textCanvas.drawBitmap(paper, 0.0f, 0.0f, paint);
             if (isWriting) {
@@ -463,6 +464,7 @@ public class MainActivity extends AppCompatActivity {
                         spacing = motionEvent.getY();
                         end = height;
                     }
+                    recycleBitmap(cuttingBitmap);
                     cuttingBitmap = Bitmap.createBitmap(blankBitmap);
                     cuttingCanvas = new Canvas(cuttingBitmap);
                 } else {
@@ -767,6 +769,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (nextBeginning != null) {
             canvas.drawBitmap(nextBeginning, 0.0f, 0.0f, paint);
+            nextBeginning.recycle();
             if (rbHorizontalWriting.isChecked()) {
                 if (!sRotate.isChecked()) {
                     left = 0.0f;
@@ -923,6 +926,12 @@ public class MainActivity extends AppCompatActivity {
         ivPreview.invalidate();
     }
 
+    private void recycleBitmap(Bitmap bitmap) {
+        if (bitmap != null) {
+            bitmap.recycle();
+        }
+    }
+
     private void setBrushAlpha(int alpha) {
         int color = brushColor - 0xFF000000 + (alpha * alpha - 1) * 0x1000000;
         int brushWidth = brush.getWidth(), brushHeight = brush.getHeight();
@@ -988,6 +997,7 @@ public class MainActivity extends AppCompatActivity {
         } else {
             blankCanvas.drawLine(width / 2.0f, 0.0f, width / 2.0f, height, paint);
         }
+        recycleBitmap(textBitmapTranslucent);
         textBitmapTranslucent = Bitmap.createBitmap(blankBitmap);
         blankCanvas.drawBitmap(bitmap, 0.0f, 0.0f, paint);
     }
