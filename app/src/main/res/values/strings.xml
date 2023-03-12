@@ -25,5 +25,5 @@
     <string name="rotating">橫向寫字板</string>
     <string name="space">－</string>
     <string name="stroke_width">筆畫寬度</string>
-    <string name="vertical">縱書</string>
+    <string name="vertical">直書</string>
 </resources>

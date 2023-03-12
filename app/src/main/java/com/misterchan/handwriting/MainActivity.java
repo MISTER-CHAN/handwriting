@@ -4,16 +4,16 @@ import android.annotation.SuppressLint;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.BlendMode;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Looper;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
@@ -26,7 +26,10 @@ import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.ColorInt;
+import androidx.annotation.IntRange;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
 
@@ -35,136 +38,158 @@ import java.io.InputStream;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final int TRANSLUCENT = Color.argb(0x7F, 0xFF, 0xFF, 0xFF);
-    private static final Rect SQUARE_WITH_SIDE_LENGTH_192 = new Rect(0, 0, 126, 126);
+    private static final Rect SQUARE_192 = new Rect(0, 0, 126, 126);
+
+    private static final Paint PAINT_SRC = new Paint() {
+        {
+            setAntiAlias(false);
+            setBlendMode(BlendMode.SRC);
+            setFilterBitmap(false);
+        }
+    };
 
     private Bitmap bitmap;
-    private Bitmap blankBitmap;
     private Bitmap brush;
     private Bitmap brushBlack;
     private Bitmap brushBlackRotated;
     private Bitmap brushRed;
     private Bitmap brushRedRotated;
-    private Bitmap charBitmap;
+    private Bitmap cursorBitmap;
     private Bitmap cuttingBitmap;
-    private Bitmap displayBitmap;
+    private Bitmap guideBitmap;
     private Bitmap paper;
     private Bitmap previewBitmap;
-    private Bitmap previewPaperBitmap;
+    private Bitmap rotatedBitmap;
     private Bitmap textBitmap;
-    private Bitmap textBitmapTranslucent;
     private boolean autoNewline = false;
-    private boolean backspace = false;
     private boolean hasNotLoaded = true;
     private boolean isNotErasing = true;
     private boolean isWriting = false;
     private boolean space = false;
     private Button bColor;
     private Button bNew;
-    private Canvas blankCanvas;
     private Canvas canvas;
-    private Canvas charCanvas;
+    private Canvas cursorCanvas;
     private Canvas cuttingCanvas;
-    private Canvas displayCanvas;
+    private Canvas guideCanvas;
     private Canvas previewCanvas;
-    private Canvas previewPaperCanvas;
+    private Canvas rotatedCanvas;
     private Canvas textCanvas;
     private float alias = 8.0f;
-    private float backspaceX = 0.0f, backspaceY = 0.0f;
     private float bottom;
-    private float brushWidth;
     private float charBottom;
     private float charLength = -1.0f;
     private float charTop;
     private float charWidth = 64.0f;
     private float columnSpacing = 4.0f;
-    private float cursorX = 0.0f;
+    private float cursorX = 0.0f, cursorY = 0.0f;
     private float curvature = 2.0f;
-    private float end = 0.0f;
     private float left;
     private float lineSpacing = 0.0f;
-    private float cursorY = 0.0f;
-    private float prevX = 0.0f, prevY = 0.0f;
     private float previewX = 0f, previewY = 0.0f;
     private float right;
     private float size;
-    private float spacing = 0.0f;
     private float strokeWidth = 64.0f;
     private float top;
-    private ImageView ivCanvas;
-    private ImageView ivPreview;
+    private ImageView ivPaper, ivText, ivCursor, ivPreview, ivGuide, iv, ivCutting;
     private int brushColor = Color.BLACK;
     private int handwriting = 16;
     private int width, height;
     private LinearLayout llOptions;
     private LinearLayout llTools;
-    private final Matrix matrix = new Matrix();
+    private final Matrix rotation = new Matrix();
     private RadioButton rbHorizontalWriting, rbVerticalWriting;
     private Rect rect;
     private Rect rotatedRect;
-    private SeekBar sbAlpha;
     private SeekBar sbCharLength;
     private SeekBar sbConcentration;
     private SwitchCompat sRotate;
+    private View vTranslucent;
 
     private final Paint cursor = new Paint() {
-
         {
             setStrokeWidth(8.0f);
             setStyle(Style.STROKE);
         }
     };
 
-    private final Paint eraser = new Paint() {
+    private final Paint cutter = new Paint() {
+        {
+            setAntiAlias(true);
+            setColor(Color.BLACK);
+            setStrokeWidth(2.0f);
+        }
+    };
 
+    private final Paint eraser = new Paint() {
         {
             setAntiAlias(false);
+            setBlendMode(BlendMode.CLEAR);
             setColor(Color.BLACK);
             setDither(false);
-            setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
+        }
+    };
+
+    private final Paint guide = new Paint() {
+        {
+            setAntiAlias(true);
+            setColor(Color.BLACK);
+            setStrokeWidth(2.0f);
         }
     };
 
     private final Paint paint = new Paint() {
-
         {
+            setAntiAlias(true);
+            setFilterBitmap(true);
             setStrokeWidth(2.0f);
         }
     };
 
     private final Paint previewer = new Paint() {
-
         {
             setStrokeWidth(2.0f);
             setStyle(Style.STROKE);
         }
     };
 
-    private final ActivityResultCallback<Uri> imageActivityResultCallback = result -> {
+    private final Paint scaler = new Paint() {
+        {
+            setAntiAlias(true);
+            setFilterBitmap(true);
+            setStrokeWidth(2.0f);
+        }
+    };
+
+    private final ActivityResultCallback<Uri> onImagePickedCallback = result -> {
         if (result == null) {
             return;
         }
         try (InputStream inputStream = getContentResolver().openInputStream(result)) {
             recycleBitmap(paper);
-            paper = Bitmap.createScaledBitmap(BitmapFactory.decodeStream(inputStream), width, height, true);
-            textCanvas.drawBitmap(paper, 0.0f, 0.0f, paint);
+            paper = BitmapFactory.decodeStream(inputStream);
             if (isWriting) {
                 isWriting = false;
-                clearCanvas(canvas);
+                eraseBitmap(bitmap);
             }
-            ivCanvas.setImageBitmap(textBitmap);
-            previewPaperCanvas.drawBitmap(paper, 0.0f, 0.0f, paint);
+            ivPaper.setImageBitmap(paper);
             preview();
-            setCursor();
+            drawCursor();
         } catch (IOException e) {
             e.printStackTrace();
         }
     };
 
-    private final ActivityResultLauncher<String> imageActivityResultLauncher =
-            registerForActivityResult(new ActivityResultContracts.GetContent(), imageActivityResultCallback);
+    private final ActivityResultLauncher<PickVisualMediaRequest> pickMedia =
+            registerForActivityResult(
+                    new ActivityResultContracts.PickVisualMedia(),
+                    onImagePickedCallback);
 
-    private final CompoundButton.OnCheckedChangeListener onCharLengthAutoRadButtCheckedChangeListener = (compoundButton, isChecked) -> {
+    private final PickVisualMediaRequest pickVisualMediaRequest = new PickVisualMediaRequest.Builder()
+            .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+            .build();
+
+    private final CompoundButton.OnCheckedChangeListener onCharLengthAutoRadButtCheckedChangeListener = (buttonView, isChecked) -> {
         if (isChecked) {
             sbCharLength.setVisibility(View.GONE);
             charLength = -1.0f;
@@ -172,7 +197,7 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private final CompoundButton.OnCheckedChangeListener onCharLengthCustomRadButtCheckedChangeListener = (compoundButton, isChecked) -> {
+    private final CompoundButton.OnCheckedChangeListener onCharLengthCustomRadButtCheckedChangeListener = (buttonView, isChecked) -> {
         if (isChecked) {
             charLength = sbCharLength.getProgress();
             sbCharLength.setVisibility(View.VISIBLE);
@@ -186,14 +211,16 @@ public class MainActivity extends AppCompatActivity {
                 : isChecked ? brushRedRotated : brushRed)
                 .copy(Bitmap.Config.ARGB_8888, true);
         setBrushConcentration((double) sbConcentration.getProgress() / 10.0);
+        drawGuide();
     };
 
-    private final View.OnClickListener onColorButtonClickListener = view -> {
+    private final View.OnClickListener onClickColorButtonListener = v -> {
         isNotErasing = !isNotErasing;
         bColor.setTextColor(isNotErasing ? brushColor : Color.WHITE);
     };
 
-    private final View.OnLongClickListener onColorButtonLongClickListener = view -> {
+    private final View.OnLongClickListener onLongClickColorButtonListener = v -> {
+        brush.recycle();
         if (brushColor == Color.BLACK) {
             brush = (sRotate.isChecked() ? brushRedRotated : brushRed).copy(Bitmap.Config.ARGB_8888, true);
             brushColor = Color.RED;
@@ -211,48 +238,27 @@ public class MainActivity extends AppCompatActivity {
         return true;
     };
 
-    private final View.OnClickListener onNewButtonClickListener = view ->
+    private final View.OnClickListener onClickNewButtonListener = v ->
             Toast.makeText(this, "長按以確定作廢當前紙張並使用新紙張", Toast.LENGTH_LONG).show();
 
-    private final View.OnClickListener onNextButtonClickListener = view -> {
+    private final View.OnClickListener onClickNextButtonListener = v -> {
         if (isWriting) {
             next();
         }
     };
 
-    private final View.OnClickListener onOptionsButtonClickListener = view -> {
-        if (llOptions.getVisibility() == View.VISIBLE) {
-            llOptions.setVisibility(View.GONE);
-            llTools.setVisibility(View.VISIBLE);
-            ivCanvas.setVisibility(View.VISIBLE);
-        } else {
-            ivCanvas.setVisibility(View.GONE);
-            llTools.setVisibility(View.INVISIBLE);
-            llOptions.setVisibility(View.VISIBLE);
-            if (previewPaperBitmap == null) {
-                previewPaperBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-                previewPaperCanvas = new Canvas(previewPaperBitmap);
-            }
-            bNew.setEnabled(true);
-        }
-    };
+    private final View.OnClickListener onClickPaperButtonListener = v ->
+            pickMedia.launch(pickVisualMediaRequest);
 
-    private final View.OnClickListener onPaperButtonClickListener = view ->
-            imageActivityResultLauncher.launch("image/*");
-
-    private final View.OnLongClickListener onNewButtonLongClickListener = view -> {
-        view.setEnabled(false);
-        if (paper == null) {
-            clearCanvas(textCanvas);
-        } else {
-            textCanvas.drawBitmap(paper, 0.0f, 0.0f, paint);
-        }
-        ivCanvas.setImageBitmap(textBitmap);
-        setCursor();
+    private final View.OnLongClickListener onLongClickNewButtonListener = v -> {
+        v.setEnabled(false);
+        eraseBitmap(textBitmap);
+        iv.invalidate();
+        drawCursor();
         return true;
     };
 
-    private final View.OnClickListener onReturnButtonClickListener = view -> {
+    private final View.OnClickListener onClickReturnButtonListener = v -> {
         if (isWriting) {
             next();
         } else {
@@ -263,33 +269,33 @@ public class MainActivity extends AppCompatActivity {
                 cursorY = 0.0f;
                 cursorX -= charWidth + lineSpacing;
             }
-            setCursor();
+            drawCursor();
         }
     };
 
-    private final OnProgressChangeListener onCharLengthSeekBarProgressChangeListener = progress -> {
+    private final OnSeekBarProgressChangedListener onCharLengthSeekBarProgressChangedListener = progress -> {
         charLength = progress;
         preview();
     };
 
-    private final OnProgressChangeListener onCharWidthSeekBarProgressChangeListener = progress -> {
+    private final OnSeekBarProgressChangedListener onCharWidthSeekBarProgressChangedListener = progress -> {
         charWidth = progress;
         preview();
     };
 
-    private final OnProgressChangeListener onColSpacingSeekBarProgressChangeListener = progress -> {
+    private final OnSeekBarProgressChangedListener onColSpacingSeekBarProgressChangedListener = progress -> {
         columnSpacing = progress;
         preview();
     };
 
-    private final OnProgressChangeListener onLineSpacingSeekBarProgressChangeListener = progress -> {
+    private final OnSeekBarProgressChangedListener onLineSpacingSeekBarProgressChangedListener = progress -> {
         lineSpacing = progress;
         preview();
     };
 
     private final SeekBar.OnSeekBarChangeListener onAlphaSeekBarChangeListener = new SeekBar.OnSeekBarChangeListener() {
         @Override
-        public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+        public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
         }
 
         @Override
@@ -304,7 +310,7 @@ public class MainActivity extends AppCompatActivity {
 
     private final SeekBar.OnSeekBarChangeListener onConcentrationSeekBarChangeListener = new SeekBar.OnSeekBarChangeListener() {
         @Override
-        public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+        public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
         }
 
         @Override
@@ -318,218 +324,235 @@ public class MainActivity extends AppCompatActivity {
     };
 
     @SuppressLint("ClickableViewAccessibility")
-    private final View.OnTouchListener onBackspaceButtonTouchListener = (view, motionEvent) -> {
-        switch (motionEvent.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                backspaceX = motionEvent.getX();
-                backspaceY = motionEvent.getY();
-                break;
-            case MotionEvent.ACTION_MOVE:
-                if (rbHorizontalWriting.isChecked()) {
-                    float x = motionEvent.getX();
-                    int deltaX = (int) (backspaceX - x);
-                    if (deltaX != 0) {
-                        backspace(deltaX);
-                        backspaceX = x;
+    private final View.OnTouchListener onTouchBackspaceButtonListener = new View.OnTouchListener() {
+        private boolean backspace = false;
+        private float backspaceX = 0.0f, backspaceY = 0.0f;
+
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN -> {
+                    backspaceX = event.getX();
+                    backspaceY = event.getY();
+                }
+                case MotionEvent.ACTION_MOVE -> {
+                    if (rbHorizontalWriting.isChecked()) {
+                        float x = event.getX();
+                        int deltaX = (int) (backspaceX - x);
+                        if (deltaX != 0) {
+                            backspace(deltaX);
+                            backspaceX = x;
+                        }
+                    } else {
+                        float y = event.getY();
+                        int deltaY = (int) (backspaceY - y);
+                        if (deltaY != 0) {
+                            backspace(deltaY);
+                            backspaceY = y;
+                        }
                     }
-                } else {
-                    float y = motionEvent.getY();
-                    int deltaY = (int) (backspaceY - y);
-                    if (deltaY != 0) {
-                        backspace(deltaY);
-                        backspaceY = y;
+                    backspace = true;
+                }
+                case MotionEvent.ACTION_UP -> {
+                    if (backspace) {
+                        backspace = false;
+                    } else {
+                        backspace((int) (charWidth / 4.0f));
                     }
                 }
-                backspace = true;
-                break;
-            case MotionEvent.ACTION_UP:
-                if (backspace) {
-                    backspace = false;
-                } else {
-                    backspace((int) (charWidth / 4.0f));
-                }
-                break;
+            }
+            return true;
         }
-        return true;
     };
 
     @SuppressLint("ClickableViewAccessibility")
-    private final View.OnTouchListener onCanvasTouchListener = (view, motionEvent) -> {
-        final float x = motionEvent.getX(), y = motionEvent.getY();
-        switch (motionEvent.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                prevX = x;
-                prevY = y;
-                brushWidth = 0.0f;
-                if (!isWriting) {
-                    startWriting();
-                }
-                break;
-            case MotionEvent.ACTION_MOVE:
+    private final View.OnTouchListener onTouchIVsListener = new View.OnTouchListener() {
+        private float lastX = 0.0f, lastY = 0.0f, brushWidth;
 
-                if (isNotErasing) {
-
-                    if (x < left) left = x;
-                    if (x > right) right = x;
-                    if (y < top) top = y;
-                    if (y > bottom) bottom = y;
-
-                    float d = (float) Math.sqrt(Math.pow(x - prevX, 2) + Math.pow(y - prevY, 2)),
-                            a = d / (float) Math.pow(d, curvature),
-                            w = 0.0f,
-                            width = (float) Math.pow(1 - d / size, handwriting) * strokeWidth,
-                            dBwPD = (width - brushWidth) / d, // Delta brushWidth per d
-                            dxPD = (x - prevX) / d, dyPD = (y - prevY) / d; // Delta x per d and delta y per d
-                    if (width >= brushWidth) {
-                        for (float f = 0; f < d; f += alias) {
-                            w = a * (float) Math.pow(f, curvature) * dBwPD + brushWidth;
-                            RectF dst = new RectF(dxPD * f + prevX - w, dyPD * f + prevY - w,
-                                    dxPD * f + prevX + w, dyPD * f + prevY + w);
-                            blankCanvas.drawBitmap(brush, SQUARE_WITH_SIDE_LENGTH_192, dst, paint);
-                            canvas.drawBitmap(brush, SQUARE_WITH_SIDE_LENGTH_192, dst, paint);
-                        }
-                    } else {
-                        for (float f = 0; f < d; f += alias) {
-                            w = (float) Math.pow(f / a, 1 / curvature) * dBwPD + brushWidth;
-                            RectF dst = new RectF(dxPD * f + prevX - w, dyPD * f + prevY - w,
-                                    dxPD * f + prevX + w, dyPD * f + prevY + w);
-                            canvas.drawBitmap(brush, SQUARE_WITH_SIDE_LENGTH_192, dst, paint);
-                            blankCanvas.drawBitmap(brush, SQUARE_WITH_SIDE_LENGTH_192, dst, paint);
-                        }
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            final float x = event.getX(), y = event.getY();
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN -> {
+                    lastX = x;
+                    lastY = y;
+                    brushWidth = 0.0f;
+                    if (!isWriting) {
+                        startWriting();
                     }
-                    brushWidth = w;
-                    prevX = x;
-                    prevY = y;
+                }
+                case MotionEvent.ACTION_MOVE -> {
 
-                } else {
-                    int strokeWidth = (int) this.strokeWidth,
-                            halfStrokeWidth = strokeWidth >> 1,
-                            strokeLeft = (int) (x - halfStrokeWidth),
-                            strokeTop = (int) (y - halfStrokeWidth);
-                    canvas.drawRect(strokeLeft, strokeTop, strokeLeft + strokeWidth, strokeTop + strokeWidth, eraser);
-                    if (paper == null) {
-                        blankCanvas.drawRect(strokeLeft, strokeTop, strokeLeft + strokeWidth, strokeTop + strokeWidth, eraser);
+                    if (isNotErasing) {
+
+                        if (x < left) left = x;
+                        if (x > right) right = x;
+                        if (y < top) top = y;
+                        if (y > bottom) bottom = y;
+
+                        float d = (float) Math.sqrt(Math.pow(x - lastX, 2.0) + Math.pow(y - lastY, 2.0)),
+                                a = d / (float) Math.pow(d, curvature),
+                                w = 0.0f,
+                                width = (float) Math.pow(1.0 - d / size, handwriting) * strokeWidth,
+                                dBwPD = (width - brushWidth) / d, // Delta brushWidth per d
+                                dxPD = (x - lastX) / d, dyPD = (y - lastY) / d; // Delta x per d and delta y per d
+                        if (width >= brushWidth) {
+                            for (float f = 0; f < d; f += alias) {
+                                w = a * (float) Math.pow(f, curvature) * dBwPD + brushWidth;
+                                RectF dst = new RectF(dxPD * f + lastX - w, dyPD * f + lastY - w,
+                                        dxPD * f + lastX + w, dyPD * f + lastY + w);
+                                canvas.drawBitmap(brush, SQUARE_192, dst, paint);
+                            }
+                        } else {
+                            for (float f = 0.0f; f < d; f += alias) {
+                                w = (float) Math.pow(f / a, 1.0 / curvature) * dBwPD + brushWidth;
+                                RectF dst = new RectF(dxPD * f + lastX - w, dyPD * f + lastY - w,
+                                        dxPD * f + lastX + w, dyPD * f + lastY + w);
+                                canvas.drawBitmap(brush, SQUARE_192, dst, paint);
+                            }
+                        }
+                        brushWidth = w;
+                        lastX = x;
+                        lastY = y;
+
                     } else {
-                        Bitmap bm = Bitmap.createBitmap(textBitmapTranslucent, strokeLeft, strokeTop, strokeWidth, strokeWidth);
-                        blankCanvas.drawBitmap(bm, strokeLeft, strokeTop, paint);
-                        bm.recycle();
+                        int strokeWidth = (int) MainActivity.this.strokeWidth,
+                                halfStrokeWidth = strokeWidth >> 1,
+                                strokeLeft = (int) (x - halfStrokeWidth),
+                                strokeTop = (int) (y - halfStrokeWidth);
+                        canvas.drawRect(strokeLeft, strokeTop, strokeLeft + strokeWidth, strokeTop + strokeWidth, eraser);
+
                     }
 
                 }
-
-                break;
-            case MotionEvent.ACTION_UP:
-                return true;
+                case MotionEvent.ACTION_UP -> {
+                    return true;
+                }
+            }
+            iv.invalidate();
+            return true;
         }
-        ivCanvas.setImageBitmap(blankBitmap);
-        return true;
     };
 
     @SuppressLint("ClickableViewAccessibility")
-    private final View.OnTouchListener onNextButtonTouchListener = (view, motionEvent) -> {
-        if (motionEvent.getAction() == MotionEvent.ACTION_MOVE) {
+    private final View.OnTouchListener onTouchNextButtonListener = (v, event) -> {
+        if (event.getAction() == MotionEvent.ACTION_MOVE) {
             int[] canvasLocation = new int[2];
-            ivCanvas.getLocationOnScreen(canvasLocation);
-            if (motionEvent.getRawY() < canvasLocation[1] + height) {
+            iv.getLocationOnScreen(canvasLocation);
+            if (event.getRawY() < canvasLocation[1] + height) {
                 if (isWriting) {
                     next();
                 }
                 int[] buttonLocation = new int[2];
-                view.getLocationOnScreen(buttonLocation);
-                cursorX = (buttonLocation[0] + motionEvent.getX() - canvasLocation[0]) - charWidth / 8.0f;
-                cursorY = (buttonLocation[1] + motionEvent.getY() - canvasLocation[1]) - charWidth / 2.0f;
-                setCursor(true);
+                v.getLocationOnScreen(buttonLocation);
+                cursorX = (buttonLocation[0] + event.getX() - canvasLocation[0]) - charWidth / 8.0f;
+                cursorY = (buttonLocation[1] + event.getY() - canvasLocation[1]) - charWidth / 2.0f;
+                drawCursor(true);
             }
         }
         return false;
     };
 
     @SuppressLint("ClickableViewAccessibility")
-    private final View.OnTouchListener onPreviewTouchListener = (view, motionEvent) -> {
-        previewX = motionEvent.getX();
-        previewY = motionEvent.getY();
+    private final View.OnTouchListener onTouchSpaceButtonListener = new View.OnTouchListener() {
+        private float spacing = 0.0f, end = 0.0f;
+
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN -> {
+                    if (isWriting) {
+                        if (rbHorizontalWriting.isChecked() ^ sRotate.isChecked()) {
+                            spacing = event.getX();
+                            end = width;
+                        } else {
+                            spacing = event.getY();
+                            end = height;
+                        }
+                    } else {
+                        spacing = rbHorizontalWriting.isChecked() ? event.getX() : event.getY();
+                    }
+                }
+                case MotionEvent.ACTION_MOVE -> {
+                    space = true;
+                    if (isWriting) {
+                        eraseBitmap(cuttingBitmap);
+                        if (rbHorizontalWriting.isChecked() ^ sRotate.isChecked()) {
+                            float x = event.getX();
+                            cuttingCanvas.drawLine(end += x - spacing, 0.0f, end, height, cutter);
+                            spacing = x;
+                        } else {
+                            float y = event.getY();
+                            cuttingCanvas.drawLine(0.0f, end += y - spacing, width, end, cutter);
+                            spacing = y;
+                        }
+                        ivCutting.invalidate();
+                    } else {
+                        if (rbHorizontalWriting.isChecked()) {
+                            float x = event.getX();
+                            cursorX += x - spacing;
+                            spacing = x;
+                        } else {
+                            float y = event.getY();
+                            cursorY += y - spacing;
+                            spacing = y;
+                        }
+                        drawCursor();
+                    }
+                }
+                case MotionEvent.ACTION_UP -> {
+                    if (space) {
+                        space = false;
+                        if (isWriting) {
+                            next((int) end);
+                        }
+                    } else {
+                        if (isWriting) {
+                            next((int) ((right - left) / 4.0f * 3.0f));
+                        } else {
+                            if (rbHorizontalWriting.isChecked()) {
+                                cursorX += charWidth / 4.0f;
+                            } else {
+                                cursorY += charWidth / 4.0f;
+                            }
+                        }
+                        drawCursor();
+                    }
+                }
+            }
+            return true;
+        }
+    };
+
+    @SuppressLint("ClickableViewAccessibility")
+    private final View.OnTouchListener onTouchPreviewListener = (v, event) -> {
+        previewX = event.getX();
+        previewY = event.getY();
         preview();
         return true;
     };
 
     @SuppressLint("ClickableViewAccessibility")
-    private final View.OnTouchListener onSpaceButtonTouchListener = (view, motionEvent) -> {
-        switch (motionEvent.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                if (isWriting) {
-                    if (rbHorizontalWriting.isChecked() ^ sRotate.isChecked()) {
-                        spacing = motionEvent.getX();
-                        end = width;
-                    } else {
-                        spacing = motionEvent.getY();
-                        end = height;
-                    }
-                    recycleBitmap(cuttingBitmap);
-                    cuttingBitmap = Bitmap.createBitmap(blankBitmap);
-                    cuttingCanvas = new Canvas(cuttingBitmap);
-                } else {
-                    spacing = rbHorizontalWriting.isChecked() ? motionEvent.getX() : motionEvent.getY();
-                }
-                break;
-            case MotionEvent.ACTION_MOVE:
-                space = true;
-                if (isWriting) {
-                    if (rbHorizontalWriting.isChecked() ^ sRotate.isChecked()) {
-                        float x = motionEvent.getX();
-                        clearCanvas(cuttingCanvas);
-                        cuttingCanvas.drawBitmap(blankBitmap, 0.0f, 0.0f, paint);
-                        cuttingCanvas.drawLine(end += x - spacing, 0.0f, end, height, paint);
-                        ivCanvas.setImageBitmap(cuttingBitmap);
-                        spacing = x;
-                    } else {
-                        float y = motionEvent.getY();
-                        clearCanvas(cuttingCanvas);
-                        cuttingCanvas.drawBitmap(blankBitmap, 0.0f, 0.0f, paint);
-                        cuttingCanvas.drawLine(0.0f, end += y - spacing, width, end, paint);
-                        ivCanvas.setImageBitmap(cuttingBitmap);
-                        spacing = y;
-                    }
-                } else {
-                    if (rbHorizontalWriting.isChecked()) {
-                        float x = motionEvent.getX();
-                        cursorX += x - spacing;
-                        spacing = x;
-                    } else {
-                        float y = motionEvent.getY();
-                        cursorY += y - spacing;
-                        spacing = y;
-                    }
-                    setCursor();
-                }
-                break;
-            case MotionEvent.ACTION_UP:
-                if (space) {
-                    space = false;
-                    if (isWriting) {
-                        next((int) end);
-                    }
-                } else {
-                    if (isWriting) {
-                        next((int) ((right - left) / 4.0f * 3.0f));
-                    } else {
-                        if (rbHorizontalWriting.isChecked()) {
-                            cursorX += charWidth / 4.0f;
-                        } else {
-                            cursorY += charWidth / 4.0f;
-                        }
-                    }
-                    setCursor();
-                }
-                break;
+    private final View.OnClickListener onClickOptionsButtonListener = v -> {
+        if (llOptions.getVisibility() == View.VISIBLE) {
+            llOptions.setVisibility(View.GONE);
+            llTools.setVisibility(View.VISIBLE);
+            ivPreview.setVisibility(View.INVISIBLE);
+        } else {
+            ivPreview.setVisibility(View.VISIBLE);
+            llTools.setVisibility(View.INVISIBLE);
+            llOptions.setVisibility(View.VISIBLE);
+            bNew.setEnabled(true);
         }
-        return true;
     };
 
     private void backspace(int size) {
         if (isWriting) {
             isWriting = false;
-            clearCanvas(canvas);
-            ivCanvas.setImageBitmap(displayBitmap);
+            eraseBitmap(bitmap);
+            iv.invalidate();
+            ivGuide.setVisibility(View.INVISIBLE);
+            vTranslucent.setVisibility(View.INVISIBLE);
         } else {
             if (rbHorizontalWriting.isChecked()) {
 
@@ -540,13 +563,7 @@ public class MainActivity extends AppCompatActivity {
                     cursorX = width - size;
                 }
 
-                if (paper == null) {
-                    textCanvas.drawRect(cursorX, cursorY, cursorX + size, cursorY + charWidth, eraser);
-                } else if (0 <= cursorX && cursorX < width) {
-                    Bitmap bm = Bitmap.createBitmap(paper, (int) cursorX, (int) cursorY, Math.abs(size), (int) charWidth);
-                    textCanvas.drawBitmap(bm, cursorX, cursorY, paint);
-                    bm.recycle();
-                }
+                textCanvas.drawRect(cursorX, cursorY, cursorX + size, cursorY + charWidth, eraser);
 
             } else {
 
@@ -557,47 +574,77 @@ public class MainActivity extends AppCompatActivity {
                     cursorY = height - size;
                 }
 
-                if (paper == null) {
-                    textCanvas.drawRect(cursorX, cursorY, cursorX + charWidth, cursorY + size, eraser);
-                } else if (0 <= cursorY && cursorY < height) {
-                    Bitmap bm = Bitmap.createBitmap(paper, (int) cursorX, (int) cursorY, (int) charWidth, Math.abs(size));
-                    textCanvas.drawBitmap(bm, cursorX, cursorY, paint);
-                    bm.recycle();
-                }
+                textCanvas.drawRect(cursorX, cursorY, cursorX + charWidth, cursorY + size, eraser);
 
             }
 
-            ivCanvas.setImageBitmap(textBitmap);
-            setCursor();
+            ivText.invalidate();
+            drawCursor();
         }
     }
 
-    private void clearCanvas(Canvas canvas) {
-        canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+    private void drawCursor() {
+        drawCursor(false);
+    }
+
+    private void drawCursor(boolean style) {
+        eraseBitmap(cursorBitmap);
+        cursorCanvas.drawRect(cursorX, style ? cursorY : cursorY + charWidth,
+                cursorX + charWidth, cursorY + charWidth,
+                cursor);
+        ivCursor.invalidate();
+    }
+
+    private void drawGuide() {
+        eraseBitmap(guideBitmap);
+        if (!sRotate.isChecked()) {
+            guideCanvas.drawLine(0.0f, charTop, width, charTop, guide);
+            guideCanvas.drawLine(0.0f, charBottom, width, charBottom, guide);
+        } else {
+            guideCanvas.drawLine(width / 2.0f, 0.0f, width / 2.0f, height, guide);
+        }
+        ivGuide.invalidate();
+    }
+
+    private void eraseBitmap(Bitmap bitmap) {
+        bitmap.eraseColor(Color.TRANSPARENT);
     }
 
     private void load() {
-        width = ivCanvas.getWidth();
-        height = ivCanvas.getHeight();
+        width = iv.getWidth();
+        height = iv.getHeight();
         rect = new Rect(0, 0, width, height);
         rotatedRect = new Rect(0, 0, height, width);
         bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         canvas = new Canvas(bitmap);
-        matrix.setRotate(-90.0f);
+        rotation.postRotate(-90.0f);
+        rotation.postTranslate(0.0f, width);
+        iv.setImageBitmap(bitmap);
 
-        blankBitmap = Bitmap.createBitmap(bitmap);
-        blankCanvas = new Canvas(blankBitmap);
-
-        charBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-        charCanvas = new Canvas(charBitmap);
+        rotatedBitmap = Bitmap.createBitmap(height, width, Bitmap.Config.ARGB_8888);
+        rotatedCanvas = new Canvas(rotatedBitmap);
 
         textBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         textCanvas = new Canvas(textBitmap);
+        ivText.setImageBitmap(textBitmap);
 
-        textBitmapTranslucent = Bitmap.createBitmap(textBitmap);
+        cursorBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        cursorCanvas = new Canvas(cursorBitmap);
+        ivCursor.setImageBitmap(cursorBitmap);
 
-        displayBitmap = Bitmap.createBitmap(textBitmap);
-        displayCanvas = new Canvas(displayBitmap);
+        previewBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        previewCanvas = new Canvas(previewBitmap);
+        ivPreview.setImageBitmap(previewBitmap);
+        previewX = width >> 1;
+        previewY = 0;
+
+        guideBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        guideCanvas = new Canvas(guideBitmap);
+        ivGuide.setImageBitmap(guideBitmap);
+
+        cuttingBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        cuttingCanvas = new Canvas(cuttingBitmap);
+        ivCutting.setImageBitmap(cuttingBitmap);
 
         size = (float) Math.sqrt(Math.pow(width, 2) + Math.pow(height, 2));
         left = width;
@@ -606,7 +653,8 @@ public class MainActivity extends AppCompatActivity {
         bottom = 0.0f;
         charTop = (height - width) / 2.0f;
         charBottom = charTop + width;
-        setCursor();
+        drawCursor();
+        drawGuide();
     }
 
     private void next() {
@@ -615,7 +663,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void next(int end) {
         isWriting = false;
-        clearCanvas(charCanvas);
 
         float charLength;
 
@@ -624,23 +671,25 @@ public class MainActivity extends AppCompatActivity {
             end = 0;
         }
 
+        Bitmap bm = !sRotate.isChecked() ? bitmap : rotatedBitmap;
+        Rect src;
+        RectF dst = new RectF();
+
         if (rbHorizontalWriting.isChecked()) {
 
             if (!sRotate.isChecked()) {
 
                 if (end == 0) {
                     charLength = toCharSize(right - left);
-                    charCanvas.drawBitmap(bitmap,
-                            rect,
-                            new RectF(0.0f, 0.0f, charWidth, toCharSize(height)),
-                            paint);
+                    src = rect;
+                    dst.right = charWidth;
+                    dst.bottom = toCharSize(height);
                 } else {
                     nextBeginning = Bitmap.createBitmap(bitmap, end, 0, width - end, height);
                     charLength = toCharSize(end - left);
-                    charCanvas.drawBitmap(bitmap,
-                            new Rect(0, 0, end, height),
-                            new RectF(0.0f, 0.0f, toCharSize(end), toCharSize(height)),
-                            paint);
+                    src = new Rect(0, 0, end, height);
+                    dst.right = toCharSize(end);
+                    dst.bottom = toCharSize(height);
                 }
 
                 if (left > 0) {
@@ -651,28 +700,24 @@ public class MainActivity extends AppCompatActivity {
                     cursorX = 0.0f;
                 }
 
-                textCanvas.drawBitmap(charBitmap, cursorX - toCharSize(left), cursorY - toCharSize(charTop), paint);
+                dst.offset(cursorX - toCharSize(left), cursorY - toCharSize(charTop));
 
             } else {
 
-                Bitmap rotatedBitmap;
                 if (end == 0) {
                     charLength = toCharSize(bottom - top);
-                    rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, true);
-                    charCanvas.drawBitmap(rotatedBitmap,
-                            rotatedRect,
-                            new RectF(0.0f, 0.0f, toCharSize(height), charWidth),
-                            paint);
+                    rotatedCanvas.drawBitmap(bitmap, rotation, PAINT_SRC);
+                    src = rotatedRect;
+                    dst.right = toCharSize(height);
+                    dst.bottom = charWidth;
                 } else {
                     nextBeginning = Bitmap.createBitmap(bitmap, 0, end, width, height - end);
                     charLength = toCharSize(end - top);
-                    rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, width, end, matrix, true);
-                    charCanvas.drawBitmap(rotatedBitmap,
-                            new Rect(0, 0, end, width),
-                            new RectF(0.0f, 0.0f, toCharSize(end), charWidth),
-                            paint);
+                    rotatedCanvas.drawBitmap(bitmap, rotation, PAINT_SRC);
+                    src = new Rect(0, 0, end, width);
+                    dst.right = toCharSize(end);
+                    dst.bottom = charWidth;
                 }
-                rotatedBitmap.recycle();
 
                 if (top > 0) {
                     cursorX += columnSpacing;
@@ -682,9 +727,10 @@ public class MainActivity extends AppCompatActivity {
                     cursorX = 0.0f;
                 }
 
-                textCanvas.drawBitmap(charBitmap, cursorX - toCharSize(top), cursorY, paint);
+                dst.offset(cursorX - toCharSize(top), cursorY);
             }
 
+            textCanvas.drawBitmap(bm, src, dst, scaler);
             cursorX += this.charLength == -1.0f ? charLength : this.charLength;
             if (!autoNewline && cursorX > width) {
                 cursorY += charWidth + lineSpacing;
@@ -697,17 +743,15 @@ public class MainActivity extends AppCompatActivity {
 
                 if (end == 0) {
                     charLength = toCharSize(bottom - top);
-                    charCanvas.drawBitmap(bitmap,
-                            rect,
-                            new RectF(0.0f, 0.0f, charWidth, toCharSize(height)),
-                            paint);
+                    src = rect;
+                    dst.right = charWidth;
+                    dst.bottom = toCharSize(height);
                 } else {
                     nextBeginning = Bitmap.createBitmap(bitmap, 0, end, width, height - end);
                     charLength = toCharSize(end - top);
-                    charCanvas.drawBitmap(bitmap,
-                            new Rect(0, 0, width, end),
-                            new RectF(0.0f, 0.0f, charWidth, toCharSize(end)),
-                            paint);
+                    src = new Rect(0, 0, width, end);
+                    dst.right = charWidth;
+                    dst.bottom = toCharSize(end);
                 }
 
                 if (top > 0) {
@@ -718,28 +762,24 @@ public class MainActivity extends AppCompatActivity {
                     cursorY = 0;
                 }
 
-                textCanvas.drawBitmap(charBitmap, cursorX, cursorY - toCharSize(top), paint);
+                dst.offset(cursorX, cursorY - toCharSize(top));
 
             } else {
 
-                Bitmap rotatedBitmap;
                 if (end == 0) {
                     charLength = toCharSize(right - left);
-                    rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, true);
-                    charCanvas.drawBitmap(rotatedBitmap,
-                            rotatedRect,
-                            new RectF(0.0f, 0.0f, toCharSize(height), charWidth),
-                            paint);
+                    rotatedCanvas.drawBitmap(bitmap, rotation, PAINT_SRC);
+                    src = rotatedRect;
+                    dst.right = toCharSize(height);
+                    dst.bottom = charWidth;
                 } else {
                     nextBeginning = Bitmap.createBitmap(bitmap, 0, 0, end, height);
                     charLength = toCharSize(right - end);
-                    rotatedBitmap = Bitmap.createBitmap(bitmap, end, 0, width - end, height, matrix, true);
-                    charCanvas.drawBitmap(rotatedBitmap,
-                            new Rect(0, 0, height, end),
-                            new RectF(0.0f, 0.0f, toCharSize(height), toCharSize(end)),
-                            paint);
+                    rotatedCanvas.drawBitmap(bitmap, rotation, PAINT_SRC);
+                    src = new Rect(0, 0, height, end);
+                    dst.right = toCharSize(height);
+                    dst.bottom = toCharSize(end);
                 }
-                rotatedBitmap.recycle();
 
                 if (right < width) {
                     cursorY += columnSpacing;
@@ -749,10 +789,11 @@ public class MainActivity extends AppCompatActivity {
                     cursorY = 0;
                 }
 
-                textCanvas.drawBitmap(charBitmap, cursorX - toCharSize(top), cursorY, paint);
+                dst.offset(cursorX - toCharSize(top), cursorY);
 
             }
 
+            textCanvas.drawBitmap(bm, src, dst, scaler);
             cursorY += this.charLength == -1.0f ? charLength : this.charLength;
             if (!autoNewline && cursorY > height) {
                 cursorX -= charWidth + lineSpacing;
@@ -760,15 +801,22 @@ public class MainActivity extends AppCompatActivity {
             }
 
         }
-        clearCanvas(canvas);
-        setCursor();
+
+        ivText.invalidate();
+        ivGuide.setVisibility(View.INVISIBLE);
+        eraseBitmap(bitmap);
+        iv.invalidate();
+        vTranslucent.setVisibility(View.INVISIBLE);
+        drawCursor();
         left = width;
         right = 0.0f;
         top = height;
         bottom = 0.0f;
 
         if (nextBeginning != null) {
-            canvas.drawBitmap(nextBeginning, 0.0f, 0.0f, paint);
+            eraseBitmap(cuttingBitmap);
+            ivCutting.invalidate();
+            canvas.drawBitmap(nextBeginning, 0.0f, 0.0f, PAINT_SRC);
             nextBeginning.recycle();
             if (rbHorizontalWriting.isChecked()) {
                 if (!sRotate.isChecked()) {
@@ -784,7 +832,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
             startWriting();
-            ivCanvas.setImageBitmap(blankBitmap);
         }
 
     }
@@ -802,43 +849,48 @@ public class MainActivity extends AppCompatActivity {
 
         bColor = findViewById(R.id.b_color);
         bNew = findViewById(R.id.b_new);
-        ivCanvas = findViewById(R.id.iv_canvas);
+        iv = findViewById(R.id.iv);
+        ivCursor = findViewById(R.id.iv_cursor);
+        ivCutting = findViewById(R.id.iv_cutting);
+        ivGuide = findViewById(R.id.iv_guide);
+        ivPaper = findViewById(R.id.iv_paper);
         ivPreview = findViewById(R.id.iv_preview);
+        ivText = findViewById(R.id.iv_text);
         llOptions = findViewById(R.id.ll_options);
         llTools = findViewById(R.id.ll_tools);
         rbHorizontalWriting = findViewById(R.id.rb_horizontal_writing);
         rbVerticalWriting = findViewById(R.id.rb_vertical_writing);
-        sbAlpha = findViewById(R.id.sb_alpha);
         sbCharLength = findViewById(R.id.sb_char_length);
         sbConcentration = findViewById(R.id.sb_concentration);
         sRotate = findViewById(R.id.s_rotating);
+        vTranslucent = findViewById(R.id.v_translucent);
 
-        findViewById(R.id.b_backspace).setOnTouchListener(onBackspaceButtonTouchListener);
-        bColor.setOnClickListener(onColorButtonClickListener);
-        bColor.setOnLongClickListener(onColorButtonLongClickListener);
-        bNew.setOnClickListener(onNewButtonClickListener);
-        bNew.setOnLongClickListener(onNewButtonLongClickListener);
-        findViewById(R.id.b_next).setOnClickListener(onNextButtonClickListener);
-        findViewById(R.id.b_next).setOnTouchListener(onNextButtonTouchListener);
-        findViewById(R.id.b_options).setOnClickListener(onOptionsButtonClickListener);
-        findViewById(R.id.b_paper).setOnClickListener(onPaperButtonClickListener);
-        findViewById(R.id.b_return).setOnClickListener(onReturnButtonClickListener);
-        findViewById(R.id.b_space).setOnTouchListener(onSpaceButtonTouchListener);
-        ivCanvas.setOnTouchListener(onCanvasTouchListener);
-        ivPreview.setOnTouchListener(onPreviewTouchListener);
+        findViewById(R.id.b_backspace).setOnTouchListener(onTouchBackspaceButtonListener);
+        bColor.setOnClickListener(onClickColorButtonListener);
+        bColor.setOnLongClickListener(onLongClickColorButtonListener);
+        bNew.setOnClickListener(onClickNewButtonListener);
+        bNew.setOnLongClickListener(onLongClickNewButtonListener);
+        findViewById(R.id.b_next).setOnClickListener(onClickNextButtonListener);
+        findViewById(R.id.b_next).setOnTouchListener(onTouchNextButtonListener);
+        findViewById(R.id.b_options).setOnClickListener(onClickOptionsButtonListener);
+        findViewById(R.id.b_paper).setOnClickListener(onClickPaperButtonListener);
+        findViewById(R.id.b_return).setOnClickListener(onClickReturnButtonListener);
+        findViewById(R.id.b_space).setOnTouchListener(onTouchSpaceButtonListener);
+        findViewById(R.id.fl_iv).setOnTouchListener(onTouchIVsListener);
+        ivPreview.setOnTouchListener(onTouchPreviewListener);
         ((RadioButton) findViewById(R.id.rb_char_length_auto)).setOnCheckedChangeListener(onCharLengthAutoRadButtCheckedChangeListener);
         ((RadioButton) findViewById(R.id.rb_char_length_custom)).setOnCheckedChangeListener(onCharLengthCustomRadButtCheckedChangeListener);
         rbHorizontalWriting.setOnCheckedChangeListener((compoundButton, isChecked) -> preview());
-        ((SeekBar) findViewById(R.id.sb_alias)).setOnSeekBarChangeListener((OnProgressChangeListener) progress -> alias = progress);
-        sbAlpha.setOnSeekBarChangeListener(onAlphaSeekBarChangeListener);
-        sbCharLength.setOnSeekBarChangeListener(onCharLengthSeekBarProgressChangeListener);
-        ((SeekBar) findViewById(R.id.sb_char_width)).setOnSeekBarChangeListener(onCharWidthSeekBarProgressChangeListener);
-        ((SeekBar) findViewById(R.id.sb_column_spacing)).setOnSeekBarChangeListener(onColSpacingSeekBarProgressChangeListener);
+        ((SeekBar) findViewById(R.id.sb_alias)).setOnSeekBarChangeListener((OnSeekBarProgressChangedListener) progress -> alias = progress);
+        ((SeekBar) findViewById(R.id.sb_alpha)).setOnSeekBarChangeListener(onAlphaSeekBarChangeListener);
+        sbCharLength.setOnSeekBarChangeListener(onCharLengthSeekBarProgressChangedListener);
+        ((SeekBar) findViewById(R.id.sb_char_width)).setOnSeekBarChangeListener(onCharWidthSeekBarProgressChangedListener);
+        ((SeekBar) findViewById(R.id.sb_column_spacing)).setOnSeekBarChangeListener(onColSpacingSeekBarProgressChangedListener);
         ((SeekBar) findViewById(R.id.sb_concentration)).setOnSeekBarChangeListener(onConcentrationSeekBarChangeListener);
-        ((SeekBar) findViewById(R.id.sb_curvature)).setOnSeekBarChangeListener((OnProgressChangeListener) progress -> curvature = progress / 10.0f);
-        ((SeekBar) findViewById(R.id.sb_handwriting)).setOnSeekBarChangeListener((OnProgressChangeListener) progress -> handwriting = progress);
-        ((SeekBar) findViewById(R.id.sb_line_spacing)).setOnSeekBarChangeListener(onLineSpacingSeekBarProgressChangeListener);
-        ((SeekBar) findViewById(R.id.sb_stroke_width)).setOnSeekBarChangeListener((OnProgressChangeListener) progress -> strokeWidth = progress);
+        ((SeekBar) findViewById(R.id.sb_curvature)).setOnSeekBarChangeListener((OnSeekBarProgressChangedListener) progress -> curvature = progress / 10.0f);
+        ((SeekBar) findViewById(R.id.sb_handwriting)).setOnSeekBarChangeListener((OnSeekBarProgressChangedListener) progress -> handwriting = progress);
+        ((SeekBar) findViewById(R.id.sb_line_spacing)).setOnSeekBarChangeListener(onLineSpacingSeekBarProgressChangedListener);
+        ((SeekBar) findViewById(R.id.sb_stroke_width)).setOnSeekBarChangeListener((OnSeekBarProgressChangedListener) progress -> strokeWidth = progress);
         ((SwitchCompat) findViewById(R.id.s_newline)).setOnCheckedChangeListener((compoundButton, b) -> autoNewline = b);
         sRotate.setOnCheckedChangeListener(onRotateSwitchCheckedChangeListener);
 
@@ -847,7 +899,7 @@ public class MainActivity extends AppCompatActivity {
         brushBlackRotated = BitmapFactory.decodeResource(res, R.mipmap.brush_rotated);
         brushRed = BitmapFactory.decodeResource(res, R.mipmap.brush_red);
         brushRedRotated = BitmapFactory.decodeResource(res, R.mipmap.brush_red_rotated);
-        brush = brushBlack.copy(Bitmap.Config.ARGB_8888, true);
+        brush = brushBlack.copy(Bitmap.Config.ARGB_8888, true); // Cannot use Bitmap.createBitmap(brushBlack); as it is immutable.
     }
 
     @Override
@@ -857,28 +909,25 @@ public class MainActivity extends AppCompatActivity {
         bitmap = null;
         brushBlack.recycle();
         brushBlack = null;
-        blankCanvas = null;
-        blankBitmap.recycle();
-        blankBitmap = null;
+        guideCanvas = null;
+        guideBitmap.recycle();
+        guideBitmap = null;
         brush.recycle();
         brush = null;
-        charCanvas = null;
-        charBitmap.recycle();
-        charBitmap = null;
         cuttingCanvas = null;
         cuttingBitmap.recycle();
         cuttingBitmap = null;
-        displayCanvas = null;
-        displayBitmap.recycle();
-        displayBitmap = null;
+        cursorCanvas = null;
+        cursorBitmap.recycle();
+        cursorBitmap = null;
         paper.recycle();
         paper = null;
         previewCanvas = null;
         previewBitmap.recycle();
         previewBitmap = null;
-        previewPaperCanvas = null;
-        previewPaperBitmap.recycle();
-        previewPaperBitmap = null;
+        rotatedCanvas = null;
+        rotatedBitmap.recycle();
+        rotatedBitmap = null;
         brushRed.recycle();
         brushRed = null;
         textCanvas = null;
@@ -888,25 +937,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onWindowFocusChanged(boolean hasFocus) {
-        super.onWindowFocusChanged(hasFocus);
-        if (hasNotLoaded && hasFocus) {
+    protected void onResume() {
+        super.onResume();
+        if (hasNotLoaded) {
             hasNotLoaded = false;
-            load();
+            Looper.getMainLooper().getQueue().addIdleHandler(() -> {
+                load();
+                return false;
+            });
         }
     }
 
     private void preview() {
-        if (previewBitmap == null) {
-            int previewWidth = ivPreview.getWidth(), previewHeight = ivPreview.getHeight();
-            previewBitmap = Bitmap.createBitmap(previewWidth, previewHeight, Bitmap.Config.ARGB_8888);
-            previewCanvas = new Canvas(previewBitmap);
-            previewX = previewWidth >> 1;
-            previewY = previewHeight >> 1;
-            ivPreview.setImageBitmap(previewBitmap);
-        }
-        clearCanvas(previewCanvas);
-        previewCanvas.drawBitmap(previewPaperBitmap, 0.0f, 0.0f, previewer);
+        eraseBitmap(previewBitmap);
         float charLength = (this.charLength == -1.0f ? charWidth : this.charLength);
         if (rbHorizontalWriting.isChecked()) {
             previewCanvas.drawRect(previewX, previewY,
@@ -932,74 +975,44 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void setBrushAlpha(int alpha) {
-        int color = brushColor - 0xFF000000 + (alpha * alpha - 1) * 0x1000000;
-        int brushWidth = brush.getWidth(), brushHeight = brush.getHeight();
-        for (int y = 0; y < brushHeight; ++y) {
-            for (int x = 0; x < brushWidth; ++x) {
-                if (brush.getPixel(x, y) != Color.TRANSPARENT) {
-                    brush.setPixel(x, y, color);
-                }
-            }
-        }
+    private void setBrushAlpha(@IntRange(from = 0x01, to = 0x10) int alpha) {
+        paint.setAlpha(alpha * alpha - 1);
     }
 
     private void setBrushConcentration(double concentration) {
         Bitmap concentratedBrush = sRotate.isChecked() ? brushBlackRotated : brushBlack;
-        int alpha = sbAlpha.getProgress(), color = brushColor - 0xFF000000 + (alpha * alpha - 1) * 0x1000000;
-        int brushWidth = concentratedBrush.getWidth(), brushHeight = concentratedBrush.getHeight();
-        for (int y = 0; y < brushHeight; ++y) {
-            for (int x = 0; x < brushWidth; ++x) {
-                if (concentratedBrush.getPixel(x, y) != Color.TRANSPARENT) {
-                    brush.setPixel(x, y, Math.random() < concentration ? color : Color.TRANSPARENT);
-                }
+        int w = concentratedBrush.getWidth(), h = concentratedBrush.getHeight(), area = w * h;
+        int[] pixels = new int[area];
+        concentratedBrush.getPixels(pixels, 0, w, 0, 0, w, h);
+        for (int i = 0; i < area; ++i) {
+            if (pixels[i] != Color.TRANSPARENT) {
+                pixels[i] = Math.random() < concentration ? brushColor : Color.TRANSPARENT;
             }
         }
+        brush.setPixels(pixels, 0, w, 0, 0, w, h);
     }
 
-    private void setBrushColor(int color) {
+    private void setBrushColor(@ColorInt int color) {
         if (color == brushColor) {
             return;
         }
-        int brushWidth = brushBlack.getWidth(), brushHeight = brushBlack.getHeight();
-        for (int y = 0; y < brushHeight; ++y) {
-            for (int x = 0; x < brushWidth; ++x) {
-                if (brushBlack.getPixel(x, y) != Color.TRANSPARENT) {
-                    brush.setPixel(x, y, color);
-                }
+        int w = brushBlack.getWidth(), h = brushBlack.getHeight(), area = w * h;
+        int[] pixels = new int[area];
+        brushBlack.getPixels(pixels, 0, w, 0, 0, w, h);
+        for (int i = 0; i < area; ++i) {
+            if (pixels[i] != Color.TRANSPARENT) {
+                pixels[i] = color;
             }
         }
+        brush.setPixels(pixels, 0, w, 0, 0, w, h);
         brushColor = color;
         bColor.setTextColor(color);
     }
 
-    private void setCursor() {
-        setCursor(false);
-    }
-
-    private void setCursor(boolean style) {
-        clearCanvas(displayCanvas);
-        displayCanvas.drawBitmap(textBitmap, 0.0f, 0.0f, paint);
-        displayCanvas.drawRect(cursorX, style ? cursorY : cursorY + charWidth,
-                cursorX + charWidth, cursorY + charWidth,
-                cursor);
-        ivCanvas.setImageBitmap(displayBitmap);
-    }
-
     private void startWriting() {
         isWriting = true;
-        clearCanvas(blankCanvas);
-        blankCanvas.drawBitmap(displayBitmap, 0.0f, 0.0f, paint);
-        blankCanvas.drawColor(TRANSLUCENT);
-        if (!sRotate.isChecked()) {
-            blankCanvas.drawLine(0.0f, charTop, width, charTop, paint);
-            blankCanvas.drawLine(0.0f, charBottom, width, charBottom, paint);
-        } else {
-            blankCanvas.drawLine(width / 2.0f, 0.0f, width / 2.0f, height, paint);
-        }
-        recycleBitmap(textBitmapTranslucent);
-        textBitmapTranslucent = Bitmap.createBitmap(blankBitmap);
-        blankCanvas.drawBitmap(bitmap, 0.0f, 0.0f, paint);
+        vTranslucent.setVisibility(View.VISIBLE);
+        ivGuide.setVisibility(View.VISIBLE);
     }
 
     private float toCharSize(float size) {

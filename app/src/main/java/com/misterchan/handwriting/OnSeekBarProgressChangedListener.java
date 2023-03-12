@@ -2,7 +2,7 @@ package com.misterchan.handwriting;
 
 import android.widget.SeekBar;
 
-public interface OnProgressChangeListener extends SeekBar.OnSeekBarChangeListener {
+public interface OnSeekBarProgressChangedListener extends SeekBar.OnSeekBarChangeListener {
 
     void onProgressChanged(int progress);
 
