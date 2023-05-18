@@ -9,12 +9,14 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Looper;
 import android.view.MotionEvent;
+import android.view.VelocityTracker;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
@@ -89,6 +91,7 @@ public class MainActivity extends AppCompatActivity {
     private float previewX = 0f, previewY = 0.0f;
     private float right;
     private float size;
+    private float softness = 0.5f;
     private float strokeWidth = 64.0f;
     private float top;
     private ImageView ivPaper, ivText, ivCursor, ivPreview, ivGuide, iv, ivCutting;
@@ -220,21 +223,22 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private final View.OnLongClickListener onLongClickColorButtonListener = v -> {
-        brush.recycle();
+//        brush.recycle();
         if (brushColor == Color.BLACK) {
-            brush = (sRotate.isChecked() ? brushRedRotated : brushRed).copy(Bitmap.Config.ARGB_8888, true);
+//            brush = (sRotate.isChecked() ? brushRedRotated : brushRed).copy(Bitmap.Config.ARGB_8888, true);
             brushColor = Color.RED;
             if (isNotErasing) {
                 bColor.setTextColor(Color.RED);
             }
         } else {
-            brush = (sRotate.isChecked() ? brushBlackRotated : brushBlack).copy(Bitmap.Config.ARGB_8888, true);
+//            brush = (sRotate.isChecked() ? brushBlackRotated : brushBlack).copy(Bitmap.Config.ARGB_8888, true);
             brushColor = Color.BLACK;
             if (isNotErasing) {
                 bColor.setTextColor(Color.BLACK);
             }
         }
-        setBrushConcentration((double) sbConcentration.getProgress() / 10.0);
+        paint.setColor(brushColor);
+//        setBrushConcentration((double) sbConcentration.getProgress() / 10.0);
         return true;
     };
 
@@ -430,6 +434,106 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
             iv.invalidate();
+            return true;
+        }
+    };
+
+    @SuppressLint("ClickableViewAccessibility")
+    private final View.OnTouchListener onTouchIVsListenerX = new View.OnTouchListener() {
+        private float lastX, lastY;
+        private float lastTLX = Float.NaN, lastTLY, lastRX, lastRY, lastBX, lastBY;
+        private float maxRad;
+        private VelocityTracker velocityTracker;
+
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN -> {
+                    velocityTracker = VelocityTracker.obtain();
+                    velocityTracker.addMovement(event);
+                    final float x = event.getX(), y = event.getY();
+                    final float rad = strokeWidth / 2.0f;
+                    if (!isWriting) {
+                        startWriting();
+                    }
+                    maxRad = rad;
+                    lastX = x;
+                    lastY = y;
+                }
+                case MotionEvent.ACTION_MOVE -> {
+                    final float x = event.getX(), y = event.getY();
+                    if (isNotErasing) {
+                        if (x < left) left = x;
+                        if (x > right) right = x;
+                        if (y < top) top = y;
+                        if (y > bottom) bottom = y;
+
+                        velocityTracker.addMovement(event);
+                        velocityTracker.computeCurrentVelocity(1);
+                        final float vel = (float) Math.hypot(velocityTracker.getXVelocity(), velocityTracker.getYVelocity());
+                        final float rad = Math.min(maxRad / vel / softness, maxRad);
+
+                        if (Float.isNaN(lastTLX) /* || ... || Float.isNaN(lastBY) */) {
+                            lastTLX = lastX - rad;
+                            lastTLY = lastY - rad;
+                            lastRX = lastX + rad;
+                            lastRY = lastY;
+                            lastBX = lastX;
+                            lastBY = lastY + rad;
+                        }
+                        final float
+                                tlx = x - rad, tly = y - rad,
+                                rx = x + rad, ry = y,
+                                bx = x, by = y + rad;
+
+                        final Path pathT = new Path();
+                        pathT.moveTo(lastTLX, lastTLY);
+                        pathT.lineTo(lastRX, lastRY);
+                        pathT.lineTo(rx, ry);
+                        pathT.lineTo(tlx, tly);
+                        pathT.close();
+                        final Path pathBR = new Path();
+                        pathBR.moveTo(lastRX, lastRY);
+                        pathBR.lineTo(lastBX, lastBY);
+                        pathBR.lineTo(bx, by);
+                        pathBR.lineTo(rx, ry);
+                        pathBR.close();
+                        final Path pathL = new Path();
+                        pathL.moveTo(lastBX, lastBY);
+                        pathL.lineTo(lastTLX, lastTLY);
+                        pathL.lineTo(tlx, tly);
+                        pathL.lineTo(bx, by);
+                        pathL.close();
+                        final Path path = new Path();
+                        path.op(pathT, Path.Op.UNION);
+                        path.op(pathBR, Path.Op.UNION);
+                        path.op(pathL, Path.Op.UNION);
+
+                        canvas.drawPath(path, paint);
+
+                        lastX = x;
+                        lastY = y;
+                        lastTLX = tlx;
+                        lastTLY = tly;
+                        lastRX = rx;
+                        lastRY = ry;
+                        lastBX = bx;
+                        lastBY = by;
+
+                    } else {
+                        int strokeWidth = (int) MainActivity.this.strokeWidth,
+                                halfStrokeWidth = strokeWidth >> 1,
+                                strokeLeft = (int) (x - halfStrokeWidth),
+                                strokeTop = (int) (y - halfStrokeWidth);
+                        canvas.drawRect(strokeLeft, strokeTop, strokeLeft + strokeWidth, strokeTop + strokeWidth, eraser);
+                    }
+                    iv.invalidate();
+                }
+                case MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    velocityTracker.recycle();
+                    lastTLX = /* lastTLY = ... = lastRY = */ Float.NaN;
+                }
+            }
             return true;
         }
     };
@@ -876,7 +980,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.b_paper).setOnClickListener(onClickPaperButtonListener);
         findViewById(R.id.b_return).setOnClickListener(onClickReturnButtonListener);
         findViewById(R.id.b_space).setOnTouchListener(onTouchSpaceButtonListener);
-        findViewById(R.id.fl_iv).setOnTouchListener(onTouchIVsListener);
+        findViewById(R.id.fl_iv).setOnTouchListener(onTouchIVsListenerX);
         ivPreview.setOnTouchListener(onTouchPreviewListener);
         ((RadioButton) findViewById(R.id.rb_char_length_auto)).setOnCheckedChangeListener(onCharLengthAutoRadButtCheckedChangeListener);
         ((RadioButton) findViewById(R.id.rb_char_length_custom)).setOnCheckedChangeListener(onCharLengthCustomRadButtCheckedChangeListener);
