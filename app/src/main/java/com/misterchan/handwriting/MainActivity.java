@@ -209,11 +209,11 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private final CompoundButton.OnCheckedChangeListener onRotateSwitchCheckedChangeListener = (buttonView, isChecked) -> {
-        brush = (brushColor == Color.BLACK
-                ? isChecked ? brushBlackRotated : brushBlack
-                : isChecked ? brushRedRotated : brushRed)
-                .copy(Bitmap.Config.ARGB_8888, true);
-        setBrushConcentration((double) sbConcentration.getProgress() / 10.0);
+//        brush = (brushColor == Color.BLACK
+//                ? isChecked ? brushBlackRotated : brushBlack
+//                : isChecked ? brushRedRotated : brushRed)
+//                .copy(Bitmap.Config.ARGB_8888, true);
+//        setBrushConcentration((double) sbConcentration.getProgress() / 10.0);
         drawGuide();
     };
 
@@ -965,7 +965,7 @@ public class MainActivity extends AppCompatActivity {
         rbHorizontalWriting = findViewById(R.id.rb_horizontal_writing);
         rbVerticalWriting = findViewById(R.id.rb_vertical_writing);
         sbCharLength = findViewById(R.id.sb_char_length);
-        sbConcentration = findViewById(R.id.sb_concentration);
+//        sbConcentration = findViewById(R.id.sb_concentration);
         sRotate = findViewById(R.id.s_rotating);
         vTranslucent = findViewById(R.id.v_translucent);
 
@@ -985,14 +985,14 @@ public class MainActivity extends AppCompatActivity {
         ((RadioButton) findViewById(R.id.rb_char_length_auto)).setOnCheckedChangeListener(onCharLengthAutoRadButtCheckedChangeListener);
         ((RadioButton) findViewById(R.id.rb_char_length_custom)).setOnCheckedChangeListener(onCharLengthCustomRadButtCheckedChangeListener);
         rbHorizontalWriting.setOnCheckedChangeListener((compoundButton, isChecked) -> preview());
-        ((SeekBar) findViewById(R.id.sb_alias)).setOnSeekBarChangeListener((OnSeekBarProgressChangedListener) progress -> alias = progress);
-        ((SeekBar) findViewById(R.id.sb_alpha)).setOnSeekBarChangeListener(onAlphaSeekBarChangeListener);
+//        ((SeekBar) findViewById(R.id.sb_alias)).setOnSeekBarChangeListener((OnSeekBarProgressChangedListener) progress -> alias = progress);
+//        ((SeekBar) findViewById(R.id.sb_alpha)).setOnSeekBarChangeListener(onAlphaSeekBarChangeListener);
         sbCharLength.setOnSeekBarChangeListener(onCharLengthSeekBarProgressChangedListener);
         ((SeekBar) findViewById(R.id.sb_char_width)).setOnSeekBarChangeListener(onCharWidthSeekBarProgressChangedListener);
         ((SeekBar) findViewById(R.id.sb_column_spacing)).setOnSeekBarChangeListener(onColSpacingSeekBarProgressChangedListener);
-        ((SeekBar) findViewById(R.id.sb_concentration)).setOnSeekBarChangeListener(onConcentrationSeekBarChangeListener);
-        ((SeekBar) findViewById(R.id.sb_curvature)).setOnSeekBarChangeListener((OnSeekBarProgressChangedListener) progress -> curvature = progress / 10.0f);
-        ((SeekBar) findViewById(R.id.sb_handwriting)).setOnSeekBarChangeListener((OnSeekBarProgressChangedListener) progress -> handwriting = progress);
+//        ((SeekBar) findViewById(R.id.sb_concentration)).setOnSeekBarChangeListener(onConcentrationSeekBarChangeListener);
+//        ((SeekBar) findViewById(R.id.sb_curvature)).setOnSeekBarChangeListener((OnSeekBarProgressChangedListener) progress -> curvature = progress / 10.0f);
+//        ((SeekBar) findViewById(R.id.sb_handwriting)).setOnSeekBarChangeListener((OnSeekBarProgressChangedListener) progress -> handwriting = progress);
         ((SeekBar) findViewById(R.id.sb_line_spacing)).setOnSeekBarChangeListener(onLineSpacingSeekBarProgressChangedListener);
         ((SeekBar) findViewById(R.id.sb_softness)).setOnSeekBarChangeListener((OnSeekBarProgressChangedListener) progress -> softness = progress / 10.0f);
         ((SeekBar) findViewById(R.id.sb_stroke_width)).setOnSeekBarChangeListener((OnSeekBarProgressChangedListener) progress -> strokeWidth = progress);
@@ -1000,11 +1000,11 @@ public class MainActivity extends AppCompatActivity {
         sRotate.setOnCheckedChangeListener(onRotateSwitchCheckedChangeListener);
 
         Resources res = getResources();
-        brushBlack = BitmapFactory.decodeResource(res, R.mipmap.brush);
-        brushBlackRotated = BitmapFactory.decodeResource(res, R.mipmap.brush_rotated);
-        brushRed = BitmapFactory.decodeResource(res, R.mipmap.brush_red);
-        brushRedRotated = BitmapFactory.decodeResource(res, R.mipmap.brush_red_rotated);
-        brush = brushBlack.copy(Bitmap.Config.ARGB_8888, true); // Cannot use Bitmap.createBitmap(brushBlack); as it is immutable.
+//        brushBlack = BitmapFactory.decodeResource(res, R.mipmap.brush);
+//        brushBlackRotated = BitmapFactory.decodeResource(res, R.mipmap.brush_rotated);
+//        brushRed = BitmapFactory.decodeResource(res, R.mipmap.brush_red);
+//        brushRedRotated = BitmapFactory.decodeResource(res, R.mipmap.brush_red_rotated);
+//        brush = brushBlack.copy(Bitmap.Config.ARGB_8888, true); // Cannot use Bitmap.createBitmap(brushBlack); as it is immutable.
     }
 
     @Override
@@ -1012,13 +1012,15 @@ public class MainActivity extends AppCompatActivity {
         canvas = null;
         bitmap.recycle();
         bitmap = null;
-        brushBlack.recycle();
-        brushBlack = null;
+//        brush.recycle();
+//        brush = null;
+//        brushBlack.recycle();
+//        brushBlack = null;
+//        brushRed.recycle();
+//        brushRed = null;
         guideCanvas = null;
         guideBitmap.recycle();
         guideBitmap = null;
-        brush.recycle();
-        brush = null;
         cuttingCanvas = null;
         cuttingBitmap.recycle();
         cuttingBitmap = null;
@@ -1033,8 +1035,6 @@ public class MainActivity extends AppCompatActivity {
         rotatedCanvas = null;
         rotatedBitmap.recycle();
         rotatedBitmap = null;
-        brushRed.recycle();
-        brushRed = null;
         textCanvas = null;
         textBitmap.recycle();
         textBitmap = null;
