@@ -157,7 +157,8 @@
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:padding="8dp">
+                android:padding="8dp"
+                android:visibility="gone">
 
                 <TextView
                     android:layout_width="0dp"
@@ -172,6 +173,28 @@
                     android:layout_weight="5"
                     android:max="30"
                     android:progress="16" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="@string/softness" />
+
+                <SeekBar
+                    android:id="@+id/sb_softness"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="5"
+                    android:max="10"
+                    android:progress="5" />
             </LinearLayout>
 
             <LinearLayout
@@ -425,7 +448,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="5"
             android:max="192"
-            android:progress="64" />
+            android:min="96"
+            android:progress="144" />
     </LinearLayout>
 
     <LinearLayout
