@@ -217,12 +217,12 @@ public class MainActivity extends AppCompatActivity {
         drawGuide();
     };
 
-    private final View.OnClickListener onClickColorButtonListener = v -> {
+    private final View.OnClickListener onColorButtonClickListener = v -> {
         isNotErasing = !isNotErasing;
         bColor.setTextColor(isNotErasing ? brushColor : Color.WHITE);
     };
 
-    private final View.OnLongClickListener onLongClickColorButtonListener = v -> {
+    private final View.OnLongClickListener onColorButtonLongClickListener = v -> {
 //        brush.recycle();
         if (brushColor == Color.BLACK) {
 //            brush = (sRotate.isChecked() ? brushRedRotated : brushRed).copy(Bitmap.Config.ARGB_8888, true);
@@ -242,19 +242,19 @@ public class MainActivity extends AppCompatActivity {
         return true;
     };
 
-    private final View.OnClickListener onClickNewButtonListener = v ->
+    private final View.OnClickListener onNewButtonClickListener = v ->
             Toast.makeText(this, "長按以確定作廢當前紙張並使用新紙張", Toast.LENGTH_LONG).show();
 
-    private final View.OnClickListener onClickNextButtonListener = v -> {
+    private final View.OnClickListener onNextButtonClickListener = v -> {
         if (isWriting) {
             next();
         }
     };
 
-    private final View.OnClickListener onClickPaperButtonListener = v ->
+    private final View.OnClickListener onPaperButtonClickListener = v ->
             pickMedia.launch(pickVisualMediaRequest);
 
-    private final View.OnLongClickListener onLongClickNewButtonListener = v -> {
+    private final View.OnLongClickListener onNewButtonLongClickListener = v -> {
         v.setEnabled(false);
         eraseBitmap(textBitmap);
         iv.invalidate();
@@ -262,7 +262,7 @@ public class MainActivity extends AppCompatActivity {
         return true;
     };
 
-    private final View.OnClickListener onClickReturnButtonListener = v -> {
+    private final View.OnClickListener onReturnButtonClickListener = v -> {
         if (isWriting) {
             next();
         } else {
@@ -328,7 +328,7 @@ public class MainActivity extends AppCompatActivity {
     };
 
     @SuppressLint("ClickableViewAccessibility")
-    private final View.OnTouchListener onTouchBackspaceButtonListener = new View.OnTouchListener() {
+    private final View.OnTouchListener onBackspaceButtonTouchListener = new View.OnTouchListener() {
         private boolean backspace = false;
         private float backspaceX = 0.0f, backspaceY = 0.0f;
 
@@ -370,7 +370,7 @@ public class MainActivity extends AppCompatActivity {
     };
 
     @SuppressLint("ClickableViewAccessibility")
-    private final View.OnTouchListener onTouchIVsListener = new View.OnTouchListener() {
+    private final View.OnTouchListener onIVsTouchListener = new View.OnTouchListener() {
         private float lastX = 0.0f, lastY = 0.0f, brushWidth;
 
         @Override
@@ -439,7 +439,7 @@ public class MainActivity extends AppCompatActivity {
     };
 
     @SuppressLint("ClickableViewAccessibility")
-    private final View.OnTouchListener onTouchIVsListenerX = new View.OnTouchListener() {
+    private final View.OnTouchListener onIVsTouchListenerX = new View.OnTouchListener() {
         private float lastX, lastY;
         private float lastTLX = Float.NaN, lastTLY, lastRX, lastRY, lastBX, lastBY;
         private float maxRad;
@@ -539,7 +539,7 @@ public class MainActivity extends AppCompatActivity {
     };
 
     @SuppressLint("ClickableViewAccessibility")
-    private final View.OnTouchListener onTouchNextButtonListener = (v, event) -> {
+    private final View.OnTouchListener onNextButtonTouchListener = (v, event) -> {
         if (event.getAction() == MotionEvent.ACTION_MOVE) {
             int[] canvasLocation = new int[2];
             iv.getLocationOnScreen(canvasLocation);
@@ -558,7 +558,7 @@ public class MainActivity extends AppCompatActivity {
     };
 
     @SuppressLint("ClickableViewAccessibility")
-    private final View.OnTouchListener onTouchSpaceButtonListener = new View.OnTouchListener() {
+    private final View.OnTouchListener onSpaceButtonTouchListener = new View.OnTouchListener() {
         private float spacing = 0.0f, end = 0.0f;
 
         @Override
@@ -629,7 +629,7 @@ public class MainActivity extends AppCompatActivity {
     };
 
     @SuppressLint("ClickableViewAccessibility")
-    private final View.OnTouchListener onTouchPreviewListener = (v, event) -> {
+    private final View.OnTouchListener onPreviewTouchListener = (v, event) -> {
         previewX = event.getX();
         previewY = event.getY();
         preview();
@@ -637,7 +637,7 @@ public class MainActivity extends AppCompatActivity {
     };
 
     @SuppressLint("ClickableViewAccessibility")
-    private final View.OnClickListener onClickOptionsButtonListener = v -> {
+    private final View.OnClickListener onOptionsButtonClickListener = v -> {
         if (llOptions.getVisibility() == View.VISIBLE) {
             llOptions.setVisibility(View.GONE);
             llTools.setVisibility(View.VISIBLE);
@@ -969,19 +969,19 @@ public class MainActivity extends AppCompatActivity {
         sRotate = findViewById(R.id.s_rotating);
         vTranslucent = findViewById(R.id.v_translucent);
 
-        findViewById(R.id.b_backspace).setOnTouchListener(onTouchBackspaceButtonListener);
-        bColor.setOnClickListener(onClickColorButtonListener);
-        bColor.setOnLongClickListener(onLongClickColorButtonListener);
-        bNew.setOnClickListener(onClickNewButtonListener);
-        bNew.setOnLongClickListener(onLongClickNewButtonListener);
-        findViewById(R.id.b_next).setOnClickListener(onClickNextButtonListener);
-        findViewById(R.id.b_next).setOnTouchListener(onTouchNextButtonListener);
-        findViewById(R.id.b_options).setOnClickListener(onClickOptionsButtonListener);
-        findViewById(R.id.b_paper).setOnClickListener(onClickPaperButtonListener);
-        findViewById(R.id.b_return).setOnClickListener(onClickReturnButtonListener);
-        findViewById(R.id.b_space).setOnTouchListener(onTouchSpaceButtonListener);
-        findViewById(R.id.fl_iv).setOnTouchListener(onTouchIVsListenerX);
-        ivPreview.setOnTouchListener(onTouchPreviewListener);
+        findViewById(R.id.b_backspace).setOnTouchListener(onBackspaceButtonTouchListener);
+        bColor.setOnClickListener(onColorButtonClickListener);
+        bColor.setOnLongClickListener(onColorButtonLongClickListener);
+        bNew.setOnClickListener(onNewButtonClickListener);
+        bNew.setOnLongClickListener(onNewButtonLongClickListener);
+        findViewById(R.id.b_next).setOnClickListener(onNextButtonClickListener);
+        findViewById(R.id.b_next).setOnTouchListener(onNextButtonTouchListener);
+        findViewById(R.id.b_options).setOnClickListener(onOptionsButtonClickListener);
+        findViewById(R.id.b_paper).setOnClickListener(onPaperButtonClickListener);
+        findViewById(R.id.b_return).setOnClickListener(onReturnButtonClickListener);
+        findViewById(R.id.b_space).setOnTouchListener(onSpaceButtonTouchListener);
+        findViewById(R.id.fl_iv).setOnTouchListener(onIVsTouchListenerX);
+        ivPreview.setOnTouchListener(onPreviewTouchListener);
         ((RadioButton) findViewById(R.id.rb_char_length_auto)).setOnCheckedChangeListener(onCharLengthAutoRadButtCheckedChangeListener);
         ((RadioButton) findViewById(R.id.rb_char_length_custom)).setOnCheckedChangeListener(onCharLengthCustomRadButtCheckedChangeListener);
         rbHorizontalWriting.setOnCheckedChangeListener((compoundButton, isChecked) -> preview());
