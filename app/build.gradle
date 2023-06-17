@@ -3,6 +3,7 @@ plugins {
 }
 
 android {
+    namespace 'com.misterchan.handwriting'
     compileSdk 33
 
     defaultConfig {
@@ -25,7 +26,9 @@ android {
         sourceCompatibility JavaVersion.VERSION_19
         targetCompatibility JavaVersion.VERSION_19
     }
-    namespace 'com.misterchan.handwriting'
+    buildFeatures {
+        viewBinding true
+    }
 }
 
 dependencies {

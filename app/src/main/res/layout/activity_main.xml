@@ -349,7 +349,7 @@
                     android:text="@string/rotating" />
 
                 <androidx.appcompat.widget.SwitchCompat
-                    android:id="@+id/s_rotating"
+                    android:id="@+id/s_rotated"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content" />
             </LinearLayout>

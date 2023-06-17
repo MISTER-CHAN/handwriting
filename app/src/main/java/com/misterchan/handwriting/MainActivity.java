@@ -18,11 +18,7 @@ import android.os.Looper;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.view.View;
-import android.widget.Button;
 import android.widget.CompoundButton;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.RadioButton;
 import android.widget.SeekBar;
 import android.widget.Toast;
 
@@ -34,6 +30,8 @@ import androidx.annotation.ColorInt;
 import androidx.annotation.IntRange;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
+
+import com.misterchan.handwriting.databinding.ActivityMainBinding;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -50,6 +48,7 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    private ActivityMainBinding binding;
     private Bitmap bitmap;
     private Bitmap brush;
     private Bitmap brushBlack;
@@ -68,8 +67,6 @@ public class MainActivity extends AppCompatActivity {
     private boolean isNotErasing = true;
     private boolean isWriting = false;
     private boolean space = false;
-    private Button bColor;
-    private Button bNew;
     private Canvas canvas;
     private Canvas cursorCanvas;
     private Canvas cuttingCanvas;
@@ -92,22 +89,14 @@ public class MainActivity extends AppCompatActivity {
     private float right;
     private float size;
     private float softness = 0.5f;
-    private float strokeWidth = 64.0f;
+    private float strokeWidth = 144.0f;
     private float top;
-    private ImageView ivPaper, ivText, ivCursor, ivPreview, ivGuide, iv, ivCutting;
     private int brushColor = Color.BLACK;
     private int handwriting = 16;
     private int width, height;
-    private LinearLayout llOptions;
-    private LinearLayout llTools;
     private final Matrix rotation = new Matrix();
-    private RadioButton rbHorizontalWriting, rbVerticalWriting;
     private Rect rect;
     private Rect rotatedRect;
-    private SeekBar sbCharLength;
-    private SeekBar sbConcentration;
-    private SwitchCompat sRotate;
-    private View vTranslucent;
 
     private final Paint cursor = new Paint() {
         {
@@ -175,7 +164,7 @@ public class MainActivity extends AppCompatActivity {
                 isWriting = false;
                 eraseBitmap(bitmap);
             }
-            ivPaper.setImageBitmap(paper);
+            binding.ivPaper.setImageBitmap(paper);
             preview();
             drawCursor();
         } catch (IOException e) {
@@ -194,7 +183,7 @@ public class MainActivity extends AppCompatActivity {
 
     private final CompoundButton.OnCheckedChangeListener onCharLengthAutoRadButtCheckedChangeListener = (buttonView, isChecked) -> {
         if (isChecked) {
-            sbCharLength.setVisibility(View.GONE);
+            binding.sbCharLength.setVisibility(View.GONE);
             charLength = -1.0f;
             preview();
         }
@@ -202,8 +191,8 @@ public class MainActivity extends AppCompatActivity {
 
     private final CompoundButton.OnCheckedChangeListener onCharLengthCustomRadButtCheckedChangeListener = (buttonView, isChecked) -> {
         if (isChecked) {
-            charLength = sbCharLength.getProgress();
-            sbCharLength.setVisibility(View.VISIBLE);
+            charLength = binding.sbCharLength.getProgress();
+            binding.sbCharLength.setVisibility(View.VISIBLE);
             preview();
         }
     };
@@ -219,22 +208,22 @@ public class MainActivity extends AppCompatActivity {
 
     private final View.OnClickListener onColorButtonClickListener = v -> {
         isNotErasing = !isNotErasing;
-        bColor.setTextColor(isNotErasing ? brushColor : Color.WHITE);
+        binding.bColor.setTextColor(isNotErasing ? brushColor : Color.WHITE);
     };
 
     private final View.OnLongClickListener onColorButtonLongClickListener = v -> {
 //        brush.recycle();
         if (brushColor == Color.BLACK) {
-//            brush = (sRotate.isChecked() ? brushRedRotated : brushRed).copy(Bitmap.Config.ARGB_8888, true);
+//            brush = (binding.sRotated.isChecked() ? brushRedRotated : brushRed).copy(Bitmap.Config.ARGB_8888, true);
             brushColor = Color.RED;
             if (isNotErasing) {
-                bColor.setTextColor(Color.RED);
+                binding.bColor.setTextColor(Color.RED);
             }
         } else {
-//            brush = (sRotate.isChecked() ? brushBlackRotated : brushBlack).copy(Bitmap.Config.ARGB_8888, true);
+//            brush = (binding.sRotated.isChecked() ? brushBlackRotated : brushBlack).copy(Bitmap.Config.ARGB_8888, true);
             brushColor = Color.BLACK;
             if (isNotErasing) {
-                bColor.setTextColor(Color.BLACK);
+                binding.bColor.setTextColor(Color.BLACK);
             }
         }
         paint.setColor(brushColor);
@@ -257,7 +246,7 @@ public class MainActivity extends AppCompatActivity {
     private final View.OnLongClickListener onNewButtonLongClickListener = v -> {
         v.setEnabled(false);
         eraseBitmap(textBitmap);
-        iv.invalidate();
+        binding.iv.invalidate();
         drawCursor();
         return true;
     };
@@ -266,7 +255,7 @@ public class MainActivity extends AppCompatActivity {
         if (isWriting) {
             next();
         } else {
-            if (rbHorizontalWriting.isChecked()) {
+            if (binding.rbHorizontalWriting.isChecked()) {
                 cursorX = 0.0f;
                 cursorY += charWidth + lineSpacing;
             } else {
@@ -340,7 +329,7 @@ public class MainActivity extends AppCompatActivity {
                     backspaceY = event.getY();
                 }
                 case MotionEvent.ACTION_MOVE -> {
-                    if (rbHorizontalWriting.isChecked()) {
+                    if (binding.rbHorizontalWriting.isChecked()) {
                         float x = event.getX();
                         int deltaX = (int) (backspaceX - x);
                         if (deltaX != 0) {
@@ -433,7 +422,7 @@ public class MainActivity extends AppCompatActivity {
                     return true;
                 }
             }
-            iv.invalidate();
+            binding.iv.invalidate();
             return true;
         }
     };
@@ -527,7 +516,7 @@ public class MainActivity extends AppCompatActivity {
                                 strokeTop = (int) (y - halfStrokeWidth);
                         canvas.drawRect(strokeLeft, strokeTop, strokeLeft + strokeWidth, strokeTop + strokeWidth, eraser);
                     }
-                    iv.invalidate();
+                    binding.iv.invalidate();
                 }
                 case MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     velocityTracker.recycle();
@@ -542,7 +531,7 @@ public class MainActivity extends AppCompatActivity {
     private final View.OnTouchListener onNextButtonTouchListener = (v, event) -> {
         if (event.getAction() == MotionEvent.ACTION_MOVE) {
             int[] canvasLocation = new int[2];
-            iv.getLocationOnScreen(canvasLocation);
+            binding.iv.getLocationOnScreen(canvasLocation);
             if (event.getRawY() < canvasLocation[1] + height) {
                 if (isWriting) {
                     next();
@@ -566,7 +555,7 @@ public class MainActivity extends AppCompatActivity {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN -> {
                     if (isWriting) {
-                        if (rbHorizontalWriting.isChecked() ^ sRotate.isChecked()) {
+                        if (binding.rbHorizontalWriting.isChecked() ^ binding.sRotated.isChecked()) {
                             spacing = event.getX();
                             end = width;
                         } else {
@@ -574,14 +563,14 @@ public class MainActivity extends AppCompatActivity {
                             end = height;
                         }
                     } else {
-                        spacing = rbHorizontalWriting.isChecked() ? event.getX() : event.getY();
+                        spacing = binding.rbHorizontalWriting.isChecked() ? event.getX() : event.getY();
                     }
                 }
                 case MotionEvent.ACTION_MOVE -> {
                     space = true;
                     if (isWriting) {
                         eraseBitmap(cuttingBitmap);
-                        if (rbHorizontalWriting.isChecked() ^ sRotate.isChecked()) {
+                        if (binding.rbHorizontalWriting.isChecked() ^ binding.sRotated.isChecked()) {
                             float x = event.getX();
                             cuttingCanvas.drawLine(end += x - spacing, 0.0f, end, height, cutter);
                             spacing = x;
@@ -590,9 +579,9 @@ public class MainActivity extends AppCompatActivity {
                             cuttingCanvas.drawLine(0.0f, end += y - spacing, width, end, cutter);
                             spacing = y;
                         }
-                        ivCutting.invalidate();
+                        binding.ivCutting.invalidate();
                     } else {
-                        if (rbHorizontalWriting.isChecked()) {
+                        if (binding.rbHorizontalWriting.isChecked()) {
                             float x = event.getX();
                             cursorX += x - spacing;
                             spacing = x;
@@ -614,7 +603,7 @@ public class MainActivity extends AppCompatActivity {
                         if (isWriting) {
                             next((int) ((right - left) / 4.0f * 3.0f));
                         } else {
-                            if (rbHorizontalWriting.isChecked()) {
+                            if (binding.rbHorizontalWriting.isChecked()) {
                                 cursorX += charWidth / 4.0f;
                             } else {
                                 cursorY += charWidth / 4.0f;
@@ -638,15 +627,15 @@ public class MainActivity extends AppCompatActivity {
 
     @SuppressLint("ClickableViewAccessibility")
     private final View.OnClickListener onOptionsButtonClickListener = v -> {
-        if (llOptions.getVisibility() == View.VISIBLE) {
-            llOptions.setVisibility(View.GONE);
-            llTools.setVisibility(View.VISIBLE);
-            ivPreview.setVisibility(View.INVISIBLE);
+        if (binding.llOptions.getVisibility() == View.VISIBLE) {
+            binding.llOptions.setVisibility(View.GONE);
+            binding.llTools.setVisibility(View.VISIBLE);
+            binding.ivPreview.setVisibility(View.INVISIBLE);
         } else {
-            ivPreview.setVisibility(View.VISIBLE);
-            llTools.setVisibility(View.INVISIBLE);
-            llOptions.setVisibility(View.VISIBLE);
-            bNew.setEnabled(true);
+            binding.ivPreview.setVisibility(View.VISIBLE);
+            binding.llTools.setVisibility(View.INVISIBLE);
+            binding.llOptions.setVisibility(View.VISIBLE);
+            binding.bNew.setEnabled(true);
         }
     };
 
@@ -654,11 +643,11 @@ public class MainActivity extends AppCompatActivity {
         if (isWriting) {
             isWriting = false;
             eraseBitmap(bitmap);
-            iv.invalidate();
-            ivGuide.setVisibility(View.INVISIBLE);
-            vTranslucent.setVisibility(View.INVISIBLE);
+            binding.iv.invalidate();
+            binding.ivGuide.setVisibility(View.INVISIBLE);
+            binding.vTranslucent.setVisibility(View.INVISIBLE);
         } else {
-            if (rbHorizontalWriting.isChecked()) {
+            if (binding.rbHorizontalWriting.isChecked()) {
 
                 if (cursorX > 0) {
                     cursorX -= size;
@@ -682,7 +671,7 @@ public class MainActivity extends AppCompatActivity {
 
             }
 
-            ivText.invalidate();
+            binding.ivText.invalidate();
             drawCursor();
         }
     }
@@ -696,18 +685,18 @@ public class MainActivity extends AppCompatActivity {
         cursorCanvas.drawRect(cursorX, style ? cursorY : cursorY + charWidth,
                 cursorX + charWidth, cursorY + charWidth,
                 cursor);
-        ivCursor.invalidate();
+        binding.ivCursor.invalidate();
     }
 
     private void drawGuide() {
         eraseBitmap(guideBitmap);
-        if (!sRotate.isChecked()) {
+        if (!binding.sRotated.isChecked()) {
             guideCanvas.drawLine(0.0f, charTop, width, charTop, guide);
             guideCanvas.drawLine(0.0f, charBottom, width, charBottom, guide);
         } else {
             guideCanvas.drawLine(width / 2.0f, 0.0f, width / 2.0f, height, guide);
         }
-        ivGuide.invalidate();
+        binding.ivGuide.invalidate();
     }
 
     private void eraseBitmap(Bitmap bitmap) {
@@ -715,40 +704,40 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void load() {
-        width = iv.getWidth();
-        height = iv.getHeight();
+        width = binding.iv.getWidth();
+        height = binding.iv.getHeight();
         rect = new Rect(0, 0, width, height);
         rotatedRect = new Rect(0, 0, height, width);
         bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         canvas = new Canvas(bitmap);
         rotation.postRotate(-90.0f);
         rotation.postTranslate(0.0f, width);
-        iv.setImageBitmap(bitmap);
+        binding.iv.setImageBitmap(bitmap);
 
         rotatedBitmap = Bitmap.createBitmap(height, width, Bitmap.Config.ARGB_8888);
         rotatedCanvas = new Canvas(rotatedBitmap);
 
         textBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         textCanvas = new Canvas(textBitmap);
-        ivText.setImageBitmap(textBitmap);
+        binding.ivText.setImageBitmap(textBitmap);
 
         cursorBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         cursorCanvas = new Canvas(cursorBitmap);
-        ivCursor.setImageBitmap(cursorBitmap);
+        binding.ivCursor.setImageBitmap(cursorBitmap);
 
         previewBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         previewCanvas = new Canvas(previewBitmap);
-        ivPreview.setImageBitmap(previewBitmap);
+        binding.ivPreview.setImageBitmap(previewBitmap);
         previewX = width >> 1;
         previewY = 0;
 
         guideBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         guideCanvas = new Canvas(guideBitmap);
-        ivGuide.setImageBitmap(guideBitmap);
+        binding.ivGuide.setImageBitmap(guideBitmap);
 
         cuttingBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         cuttingCanvas = new Canvas(cuttingBitmap);
-        ivCutting.setImageBitmap(cuttingBitmap);
+        binding.ivCutting.setImageBitmap(cuttingBitmap);
 
         size = (float) Math.sqrt(Math.pow(width, 2) + Math.pow(height, 2));
         left = width;
@@ -771,17 +760,17 @@ public class MainActivity extends AppCompatActivity {
         float charLength;
 
         Bitmap nextBeginning = null;
-        if (end >= (rbHorizontalWriting.isChecked() ^ sRotate.isChecked() ? width : height)) {
+        if (end >= (binding.rbHorizontalWriting.isChecked() ^ binding.sRotated.isChecked() ? width : height)) {
             end = 0;
         }
 
-        Bitmap bm = !sRotate.isChecked() ? bitmap : rotatedBitmap;
+        Bitmap bm = !binding.sRotated.isChecked() ? bitmap : rotatedBitmap;
         Rect src;
         RectF dst = new RectF();
 
-        if (rbHorizontalWriting.isChecked()) {
+        if (binding.rbHorizontalWriting.isChecked()) {
 
-            if (!sRotate.isChecked()) {
+            if (!binding.sRotated.isChecked()) {
 
                 if (end == 0) {
                     charLength = toCharSize(right - left);
@@ -843,7 +832,7 @@ public class MainActivity extends AppCompatActivity {
 
         } else {
 
-            if (!sRotate.isChecked()) {
+            if (!binding.sRotated.isChecked()) {
 
                 if (end == 0) {
                     charLength = toCharSize(bottom - top);
@@ -906,11 +895,11 @@ public class MainActivity extends AppCompatActivity {
 
         }
 
-        ivText.invalidate();
-        ivGuide.setVisibility(View.INVISIBLE);
+        binding.ivText.invalidate();
+        binding.ivGuide.setVisibility(View.INVISIBLE);
         eraseBitmap(bitmap);
-        iv.invalidate();
-        vTranslucent.setVisibility(View.INVISIBLE);
+        binding.iv.invalidate();
+        binding.vTranslucent.setVisibility(View.INVISIBLE);
         drawCursor();
         left = width;
         right = 0.0f;
@@ -919,17 +908,17 @@ public class MainActivity extends AppCompatActivity {
 
         if (nextBeginning != null) {
             eraseBitmap(cuttingBitmap);
-            ivCutting.invalidate();
+            binding.ivCutting.invalidate();
             canvas.drawBitmap(nextBeginning, 0.0f, 0.0f, PAINT_SRC);
             nextBeginning.recycle();
-            if (rbHorizontalWriting.isChecked()) {
-                if (!sRotate.isChecked()) {
+            if (binding.rbHorizontalWriting.isChecked()) {
+                if (!binding.sRotated.isChecked()) {
                     left = 0.0f;
                 } else {
                     top = 0.0f;
                 }
             } else {
-                if (!sRotate.isChecked()) {
+                if (!binding.sRotated.isChecked()) {
                     top = 0.0f;
                 } else {
                     right = width;
@@ -949,57 +938,40 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        binding = ActivityMainBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
 
-        bColor = findViewById(R.id.b_color);
-        bNew = findViewById(R.id.b_new);
-        iv = findViewById(R.id.iv);
-        ivCursor = findViewById(R.id.iv_cursor);
-        ivCutting = findViewById(R.id.iv_cutting);
-        ivGuide = findViewById(R.id.iv_guide);
-        ivPaper = findViewById(R.id.iv_paper);
-        ivPreview = findViewById(R.id.iv_preview);
-        ivText = findViewById(R.id.iv_text);
-        llOptions = findViewById(R.id.ll_options);
-        llTools = findViewById(R.id.ll_tools);
-        rbHorizontalWriting = findViewById(R.id.rb_horizontal_writing);
-        rbVerticalWriting = findViewById(R.id.rb_vertical_writing);
-        sbCharLength = findViewById(R.id.sb_char_length);
-//        sbConcentration = findViewById(R.id.sb_concentration);
-        sRotate = findViewById(R.id.s_rotating);
-        vTranslucent = findViewById(R.id.v_translucent);
-
-        findViewById(R.id.b_backspace).setOnTouchListener(onBackspaceButtonTouchListener);
-        bColor.setOnClickListener(onColorButtonClickListener);
-        bColor.setOnLongClickListener(onColorButtonLongClickListener);
-        bNew.setOnClickListener(onNewButtonClickListener);
-        bNew.setOnLongClickListener(onNewButtonLongClickListener);
-        findViewById(R.id.b_next).setOnClickListener(onNextButtonClickListener);
-        findViewById(R.id.b_next).setOnTouchListener(onNextButtonTouchListener);
-        findViewById(R.id.b_options).setOnClickListener(onOptionsButtonClickListener);
-        findViewById(R.id.b_paper).setOnClickListener(onPaperButtonClickListener);
-        findViewById(R.id.b_return).setOnClickListener(onReturnButtonClickListener);
-        findViewById(R.id.b_space).setOnTouchListener(onSpaceButtonTouchListener);
-        findViewById(R.id.fl_iv).setOnTouchListener(onIVsTouchListenerX);
-        ivPreview.setOnTouchListener(onPreviewTouchListener);
-        ((RadioButton) findViewById(R.id.rb_char_length_auto)).setOnCheckedChangeListener(onCharLengthAutoRadButtCheckedChangeListener);
-        ((RadioButton) findViewById(R.id.rb_char_length_custom)).setOnCheckedChangeListener(onCharLengthCustomRadButtCheckedChangeListener);
-        rbHorizontalWriting.setOnCheckedChangeListener((compoundButton, isChecked) -> preview());
+        binding.bBackspace.setOnTouchListener(onBackspaceButtonTouchListener);
+        binding.bColor.setOnClickListener(onColorButtonClickListener);
+        binding.bColor.setOnLongClickListener(onColorButtonLongClickListener);
+        binding.bNew.setOnClickListener(onNewButtonClickListener);
+        binding.bNew.setOnLongClickListener(onNewButtonLongClickListener);
+        binding.bNext.setOnClickListener(onNextButtonClickListener);
+        binding.bNext.setOnTouchListener(onNextButtonTouchListener);
+        binding.bOptions.setOnClickListener(onOptionsButtonClickListener);
+        binding.bPaper.setOnClickListener(onPaperButtonClickListener);
+        binding.bReturn.setOnClickListener(onReturnButtonClickListener);
+        binding.bSpace.setOnTouchListener(onSpaceButtonTouchListener);
+        binding.flIv.setOnTouchListener(onIVsTouchListenerX);
+        binding.ivPreview.setOnTouchListener(onPreviewTouchListener);
+        binding.rbCharLengthAuto.setOnCheckedChangeListener(onCharLengthAutoRadButtCheckedChangeListener);
+        binding.rbCharLengthCustom.setOnCheckedChangeListener(onCharLengthCustomRadButtCheckedChangeListener);
+        binding.rbHorizontalWriting.setOnCheckedChangeListener((compoundButton, isChecked) -> preview());
 //        ((SeekBar) findViewById(R.id.sb_alias)).setOnSeekBarChangeListener((OnSeekBarProgressChangedListener) progress -> alias = progress);
 //        ((SeekBar) findViewById(R.id.sb_alpha)).setOnSeekBarChangeListener(onAlphaSeekBarChangeListener);
-        sbCharLength.setOnSeekBarChangeListener(onCharLengthSeekBarProgressChangedListener);
-        ((SeekBar) findViewById(R.id.sb_char_width)).setOnSeekBarChangeListener(onCharWidthSeekBarProgressChangedListener);
-        ((SeekBar) findViewById(R.id.sb_column_spacing)).setOnSeekBarChangeListener(onColSpacingSeekBarProgressChangedListener);
+        binding.sbCharLength.setOnSeekBarChangeListener(onCharLengthSeekBarProgressChangedListener);
+        binding.sbCharWidth.setOnSeekBarChangeListener(onCharWidthSeekBarProgressChangedListener);
+        binding.sbColumnSpacing.setOnSeekBarChangeListener(onColSpacingSeekBarProgressChangedListener);
 //        ((SeekBar) findViewById(R.id.sb_concentration)).setOnSeekBarChangeListener(onConcentrationSeekBarChangeListener);
 //        ((SeekBar) findViewById(R.id.sb_curvature)).setOnSeekBarChangeListener((OnSeekBarProgressChangedListener) progress -> curvature = progress / 10.0f);
 //        ((SeekBar) findViewById(R.id.sb_handwriting)).setOnSeekBarChangeListener((OnSeekBarProgressChangedListener) progress -> handwriting = progress);
-        ((SeekBar) findViewById(R.id.sb_line_spacing)).setOnSeekBarChangeListener(onLineSpacingSeekBarProgressChangedListener);
-        ((SeekBar) findViewById(R.id.sb_softness)).setOnSeekBarChangeListener((OnSeekBarProgressChangedListener) progress -> softness = progress / 10.0f);
-        ((SeekBar) findViewById(R.id.sb_stroke_width)).setOnSeekBarChangeListener((OnSeekBarProgressChangedListener) progress -> strokeWidth = progress);
-        ((SwitchCompat) findViewById(R.id.s_newline)).setOnCheckedChangeListener((compoundButton, b) -> autoNewline = b);
-        sRotate.setOnCheckedChangeListener(onRotateSwitchCheckedChangeListener);
+        binding.sbLineSpacing.setOnSeekBarChangeListener(onLineSpacingSeekBarProgressChangedListener);
+        binding.sbSoftness.setOnSeekBarChangeListener((OnSeekBarProgressChangedListener) progress -> softness = progress / 10.0f);
+        binding.sbStrokeWidth.setOnSeekBarChangeListener((OnSeekBarProgressChangedListener) progress -> strokeWidth = progress);
+        binding.sNewline.setOnCheckedChangeListener((compoundButton, b) -> autoNewline = b);
+        binding.sRotated.setOnCheckedChangeListener(onRotateSwitchCheckedChangeListener);
 
-        Resources res = getResources();
+//        Resources res = getResources();
 //        brushBlack = BitmapFactory.decodeResource(res, R.mipmap.brush);
 //        brushBlackRotated = BitmapFactory.decodeResource(res, R.mipmap.brush_rotated);
 //        brushRed = BitmapFactory.decodeResource(res, R.mipmap.brush_red);
@@ -1056,7 +1028,7 @@ public class MainActivity extends AppCompatActivity {
     private void preview() {
         eraseBitmap(previewBitmap);
         float charLength = (this.charLength == -1.0f ? charWidth : this.charLength);
-        if (rbHorizontalWriting.isChecked()) {
+        if (binding.rbHorizontalWriting.isChecked()) {
             previewCanvas.drawRect(previewX, previewY,
                     previewX + charLength, previewY + charWidth,
                     previewer);
@@ -1071,7 +1043,7 @@ public class MainActivity extends AppCompatActivity {
                     previewX + charWidth + lineSpacing, previewY + charLength + columnSpacing,
                     previewer);
         }
-        ivPreview.invalidate();
+        binding.ivPreview.invalidate();
     }
 
     private void recycleBitmap(Bitmap bitmap) {
@@ -1085,7 +1057,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setBrushConcentration(double concentration) {
-        Bitmap concentratedBrush = sRotate.isChecked() ? brushBlackRotated : brushBlack;
+        Bitmap concentratedBrush = binding.sRotated.isChecked() ? brushBlackRotated : brushBlack;
         int w = concentratedBrush.getWidth(), h = concentratedBrush.getHeight(), area = w * h;
         int[] pixels = new int[area];
         concentratedBrush.getPixels(pixels, 0, w, 0, 0, w, h);
@@ -1111,13 +1083,13 @@ public class MainActivity extends AppCompatActivity {
         }
         brush.setPixels(pixels, 0, w, 0, 0, w, h);
         brushColor = color;
-        bColor.setTextColor(color);
+        binding.bColor.setTextColor(color);
     }
 
     private void startWriting() {
         isWriting = true;
-        vTranslucent.setVisibility(View.VISIBLE);
-        ivGuide.setVisibility(View.VISIBLE);
+        binding.vTranslucent.setVisibility(View.VISIBLE);
+        binding.ivGuide.setVisibility(View.VISIBLE);
     }
 
     private float toCharSize(float size) {
