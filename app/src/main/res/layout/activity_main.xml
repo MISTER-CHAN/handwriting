@@ -193,8 +193,8 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="5"
-                    android:max="10"
-                    android:progress="5" />
+                    android:max="32"
+                    android:progress="16" />
             </LinearLayout>
 
             <LinearLayout
@@ -202,8 +202,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:padding="8dp"
-                android:visibility="gone">
+                android:padding="8dp">
 
                 <TextView
                     android:layout_width="0dp"
@@ -225,8 +224,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:padding="8dp"
-                android:visibility="gone">
+                android:padding="8dp">
 
                 <TextView
                     android:layout_width="0dp"
@@ -249,8 +247,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:padding="8dp"
-                android:visibility="gone">
+                android:padding="8dp">
 
                 <TextView
                     android:layout_width="0dp"
@@ -273,8 +270,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:padding="8dp"
-                android:visibility="gone">
+                android:padding="8dp">
 
                 <TextView
                     android:layout_width="0dp"
@@ -447,9 +443,9 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="5"
-            android:max="192"
-            android:min="96"
-            android:progress="144" />
+            android:max="96"
+            android:min="24"
+            android:progress="48" />
     </LinearLayout>
 
     <LinearLayout

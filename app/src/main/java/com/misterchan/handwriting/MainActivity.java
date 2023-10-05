@@ -88,11 +88,10 @@ public class MainActivity extends AppCompatActivity {
     private float previewX = 0f, previewY = 0.0f;
     private float right;
     private float size;
-    private float softness = 0.5f;
-    private float strokeWidth = 144.0f;
+    private float softness = 16.0f; // 0.5f;
+    private float strokeWidth = 48.0f;
     private float top;
     private int brushColor = Color.BLACK;
-    private int handwriting = 16;
     private int width, height;
     private final Matrix rotation = new Matrix();
     private Rect rect;
@@ -198,11 +197,11 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private final CompoundButton.OnCheckedChangeListener onRotateSwitchCheckedChangeListener = (buttonView, isChecked) -> {
-//        brush = (brushColor == Color.BLACK
-//                ? isChecked ? brushBlackRotated : brushBlack
-//                : isChecked ? brushRedRotated : brushRed)
-//                .copy(Bitmap.Config.ARGB_8888, true);
-//        setBrushConcentration((double) sbConcentration.getProgress() / 10.0);
+        brush = (brushColor == Color.BLACK
+                ? isChecked ? brushBlackRotated : brushBlack
+                : isChecked ? brushRedRotated : brushRed)
+                .copy(Bitmap.Config.ARGB_8888, true);
+        setBrushConcentration((double) binding.sbConcentration.getProgress() / 10.0);
         drawGuide();
     };
 
@@ -212,22 +211,22 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private final View.OnLongClickListener onColorButtonLongClickListener = v -> {
-//        brush.recycle();
+        brush.recycle();
         if (brushColor == Color.BLACK) {
-//            brush = (binding.sRotated.isChecked() ? brushRedRotated : brushRed).copy(Bitmap.Config.ARGB_8888, true);
+            brush = (binding.sRotated.isChecked() ? brushRedRotated : brushRed).copy(Bitmap.Config.ARGB_8888, true);
             brushColor = Color.RED;
             if (isNotErasing) {
                 binding.bColor.setTextColor(Color.RED);
             }
         } else {
-//            brush = (binding.sRotated.isChecked() ? brushBlackRotated : brushBlack).copy(Bitmap.Config.ARGB_8888, true);
+            brush = (binding.sRotated.isChecked() ? brushBlackRotated : brushBlack).copy(Bitmap.Config.ARGB_8888, true);
             brushColor = Color.BLACK;
             if (isNotErasing) {
                 binding.bColor.setTextColor(Color.BLACK);
             }
         }
         paint.setColor(brushColor);
-//        setBrushConcentration((double) sbConcentration.getProgress() / 10.0);
+        setBrushConcentration((double) binding.sbConcentration.getProgress() / 10.0);
         return true;
     };
 
@@ -386,7 +385,7 @@ public class MainActivity extends AppCompatActivity {
                         float d = (float) Math.sqrt(Math.pow(x - lastX, 2.0) + Math.pow(y - lastY, 2.0)),
                                 a = d / (float) Math.pow(d, curvature),
                                 w = 0.0f,
-                                width = (float) Math.pow(1.0 - d / size, handwriting) * strokeWidth,
+                                width = (float) Math.pow(1.0 - d / size, softness) * strokeWidth,
                                 dBwPD = (width - brushWidth) / d, // Delta brushWidth per d
                                 dxPD = (x - lastX) / d, dyPD = (y - lastY) / d; // Delta x per d and delta y per d
                         if (width >= brushWidth) {
@@ -952,31 +951,32 @@ public class MainActivity extends AppCompatActivity {
         binding.bPaper.setOnClickListener(onPaperButtonClickListener);
         binding.bReturn.setOnClickListener(onReturnButtonClickListener);
         binding.bSpace.setOnTouchListener(onSpaceButtonTouchListener);
-        binding.flIv.setOnTouchListener(onIVsTouchListenerX);
+        binding.flIv.setOnTouchListener(onIVsTouchListener);
         binding.ivPreview.setOnTouchListener(onPreviewTouchListener);
         binding.rbCharLengthAuto.setOnCheckedChangeListener(onCharLengthAutoRadButtCheckedChangeListener);
         binding.rbCharLengthCustom.setOnCheckedChangeListener(onCharLengthCustomRadButtCheckedChangeListener);
         binding.rbHorizontalWriting.setOnCheckedChangeListener((compoundButton, isChecked) -> preview());
-//        ((SeekBar) findViewById(R.id.sb_alias)).setOnSeekBarChangeListener((OnSeekBarProgressChangedListener) progress -> alias = progress);
-//        ((SeekBar) findViewById(R.id.sb_alpha)).setOnSeekBarChangeListener(onAlphaSeekBarChangeListener);
+        binding.sbAlias.setOnSeekBarChangeListener((OnSeekBarProgressChangedListener) progress -> alias = progress);
+        binding.sbAlpha.setOnSeekBarChangeListener(onAlphaSeekBarChangeListener);
         binding.sbCharLength.setOnSeekBarChangeListener(onCharLengthSeekBarProgressChangedListener);
         binding.sbCharWidth.setOnSeekBarChangeListener(onCharWidthSeekBarProgressChangedListener);
         binding.sbColumnSpacing.setOnSeekBarChangeListener(onColSpacingSeekBarProgressChangedListener);
-//        ((SeekBar) findViewById(R.id.sb_concentration)).setOnSeekBarChangeListener(onConcentrationSeekBarChangeListener);
-//        ((SeekBar) findViewById(R.id.sb_curvature)).setOnSeekBarChangeListener((OnSeekBarProgressChangedListener) progress -> curvature = progress / 10.0f);
-//        ((SeekBar) findViewById(R.id.sb_handwriting)).setOnSeekBarChangeListener((OnSeekBarProgressChangedListener) progress -> handwriting = progress);
+        binding.sbConcentration.setOnSeekBarChangeListener(onConcentrationSeekBarChangeListener);
+        binding.sbCurvature.setOnSeekBarChangeListener((OnSeekBarProgressChangedListener) progress -> curvature = progress / 10.0f);
         binding.sbLineSpacing.setOnSeekBarChangeListener(onLineSpacingSeekBarProgressChangedListener);
-        binding.sbSoftness.setOnSeekBarChangeListener((OnSeekBarProgressChangedListener) progress -> softness = progress / 10.0f);
+        binding.sbSoftness.setOnSeekBarChangeListener((OnSeekBarProgressChangedListener) progress -> softness = progress /* / 10.0f*/);
         binding.sbStrokeWidth.setOnSeekBarChangeListener((OnSeekBarProgressChangedListener) progress -> strokeWidth = progress);
         binding.sNewline.setOnCheckedChangeListener((compoundButton, b) -> autoNewline = b);
         binding.sRotated.setOnCheckedChangeListener(onRotateSwitchCheckedChangeListener);
 
-//        Resources res = getResources();
-//        brushBlack = BitmapFactory.decodeResource(res, R.mipmap.brush);
-//        brushBlackRotated = BitmapFactory.decodeResource(res, R.mipmap.brush_rotated);
-//        brushRed = BitmapFactory.decodeResource(res, R.mipmap.brush_red);
-//        brushRedRotated = BitmapFactory.decodeResource(res, R.mipmap.brush_red_rotated);
-//        brush = brushBlack.copy(Bitmap.Config.ARGB_8888, true); // Cannot use Bitmap.createBitmap(brushBlack); as it is immutable.
+        Resources res = getResources();
+        brushBlack = BitmapFactory.decodeResource(res, R.drawable.brush);
+        brushBlackRotated = BitmapFactory.decodeResource(res, R.drawable.brush_rotated);
+        brushRed = BitmapFactory.decodeResource(res, R.drawable.brush_red);
+        brushRedRotated = BitmapFactory.decodeResource(res, R.drawable.brush_red_rotated);
+        brush = brushBlack.copy(Bitmap.Config.ARGB_8888, true); // Cannot use Bitmap.createBitmap(brushBlack); as it is immutable.
+        SQUARE_192.right = brush.getWidth();
+        SQUARE_192.bottom = brush.getHeight();
     }
 
     @Override
@@ -984,12 +984,12 @@ public class MainActivity extends AppCompatActivity {
         canvas = null;
         bitmap.recycle();
         bitmap = null;
-//        brush.recycle();
-//        brush = null;
-//        brushBlack.recycle();
-//        brushBlack = null;
-//        brushRed.recycle();
-//        brushRed = null;
+        brush.recycle();
+        brush = null;
+        brushBlack.recycle();
+        brushBlack = null;
+        brushRed.recycle();
+        brushRed = null;
         guideCanvas = null;
         guideBitmap.recycle();
         guideBitmap = null;
